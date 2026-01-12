@@ -71,8 +71,19 @@ export default function Login() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="login-button"
-                        style={{ marginTop: '20px' }}
+                        style={{
+                            marginTop: '20px',
+                            backgroundColor: '#667eea',
+                            color: '#ffffff',
+                            padding: '15px 30px',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontSize: '16px',
+                            fontWeight: '600',
+                            width: '100%',
+                            cursor: 'pointer',
+                            display: 'block'
+                        }}
                     >
                         {loading ? 'Cargando...' : 'INGRESAR AL PANEL'}
                     </button>
