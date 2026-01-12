@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://ingeniero-emprendedor.vercel.app/sitemap.xml
