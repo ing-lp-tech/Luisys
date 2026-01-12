@@ -63,12 +63,35 @@ const App = () => {
 export default App;
  */
 
-import { BrowserRouter as Router } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { HelmetProvider } from "react-helmet-async";
 import AppContent from "./AppContent";
-import ChatWidget from "./components/ChatWidget";
-import RespondioChat from "./components/RespondioChat";
+// import RespondioChat from "./components/RespondioChat"; // Temporalmente desactivado - necesita cId válido
+import ChatAudacesWidget from "./components/ChatAudacesWidget";
+import ChatVendedor from "./components/ChatVendedor";
+import { AuthProvider } from "./contexts/AuthContext";
+
+
+
+// Componente interno para acceder a useLocation
+const AppWithRouter = ({ cart, addToCart, removeFromCart }) => {
+  const location = useLocation();
+  const isAdminRoute = location.pathname.startsWith('/admin');
+
+  return (
+    <>
+      <AppContent
+        cart={cart}
+        addToCart={addToCart}
+        removeFromCart={removeFromCart}
+      />
+      {/* Renderizar chatbot según la ruta */}
+      {isAdminRoute ? <ChatAudacesWidget /> : <ChatVendedor />}
+      {/* <RespondioChat /> */} {/* Temporalmente desactivado - necesita cId válido */}
+    </>
+  );
+};
 
 const App = () => {
   const [cart, setCart] = useState([]);
@@ -84,15 +107,15 @@ const App = () => {
 
   return (
     <HelmetProvider>
-      <Router>
-        <AppContent
-          cart={cart}
-          addToCart={addToCart}
-          removeFromCart={removeFromCart}
-        />
-        <ChatWidget />
-        <RespondioChat />
-      </Router>
+      <AuthProvider>
+        <Router>
+          <AppWithRouter
+            cart={cart}
+            addToCart={addToCart}
+            removeFromCart={removeFromCart}
+          />
+        </Router>
+      </AuthProvider>
     </HelmetProvider>
   );
 };

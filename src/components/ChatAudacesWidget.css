@@ -1,0 +1,294 @@
+/* Audaces Chat Widget */
+.audaces-widget-button {
+    position: fixed;
+    bottom: 30px;
+    right: 80px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s, box-shadow 0.2s;
+    z-index: 999;
+}
+
+.audaces-widget-button:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 16px rgba(102, 126, 234, 0.6);
+}
+
+.widget-avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.widget-badge {
+    position: absolute;
+    top: -50px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: white;
+    color: #667eea;
+    padding: 10px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    white-space: nowrap;
+    line-height: 1.3;
+    text-align: center;
+}
+
+/* Widget Container */
+.audaces-widget-container {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    width: 400px;
+    height: 600px;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    z-index: 1000;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Widget Header */
+.audaces-widget-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 16px;
+    border-radius: 16px 16px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header-content h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.header-content p {
+    margin: 0;
+    font-size: 12px;
+    opacity: 0.9;
+}
+
+.header-actions button {
+    background: transparent;
+    border: none;
+    color: white;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.header-actions button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Messages Area */
+.audaces-widget-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: #f7f8fa;
+}
+
+.widget-message {
+    display: flex;
+    animation: fadeIn 0.3s ease-in;
+}
+
+.widget-message.user {
+    justify-content: flex-end;
+}
+
+.widget-message.assistant {
+    justify-content: flex-start;
+}
+
+.widget-message-content {
+    max-width: 80%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    line-height: 1.4;
+    font-size: 14px;
+}
+
+.widget-message.user .widget-message-content {
+    background: #667eea;
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.widget-message.assistant .widget-message-content {
+    background: white;
+    color: #333;
+    border-bottom-left-radius: 4px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.widget-message-content p {
+    margin: 0;
+}
+
+.widget-sources {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #666;
+}
+
+.widget-message-content.loading {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #f0f0f0;
+    color: #666;
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Input Area */
+.audaces-widget-input {
+    padding: 12px;
+    background: white;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    gap: 8px;
+}
+
+.audaces-widget-input input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 2px solid #e5e7eb;
+    border-radius: 20px;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.audaces-widget-input input:focus {
+    border-color: #667eea;
+}
+
+.audaces-widget-input button {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s;
+}
+
+.audaces-widget-input button:hover:not(:disabled) {
+    transform: scale(1.05);
+}
+
+.audaces-widget-input button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Footer */
+.audaces-widget-footer {
+    padding: 8px 12px;
+    background: #fff9e6;
+    border-top: 1px solid #ffe0b2;
+    font-size: 11px;
+    color: #8b6914;
+    text-align: center;
+    border-radius: 0 0 16px 16px;
+}
+
+/* Scrollbar */
+.audaces-widget-messages::-webkit-scrollbar {
+    width: 4px;
+}
+
+.audaces-widget-messages::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.audaces-widget-messages::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 2px;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .audaces-widget-container {
+        width: calc(100% - 20px);
+        height: calc(100% - 20px);
+        bottom: 10px;
+        right: 10px;
+    }
+
+    .widget-badge {
+        display: none;
+    }
+}

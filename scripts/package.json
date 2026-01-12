@@ -1,0 +1,12 @@
+{
+    "name": "migration-scripts",
+    "version": "1.0.0",
+    "type": "module",
+    "description": "Scripts de migración de productos",
+    "scripts": {
+        "migrate": "node migrate-products.js"
+    },
+    "dependencies": {
+        "@supabase/supabase-js": "^2.90.1"
+    }
+}

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { products, plotters, pcs, kitCameras, imouCams } from "../constants";
 import { ShoppingCart, Filter, X, ZoomIn } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -664,65 +664,36 @@ const ProductSection = ({ id, cart, addToCart }) => {
                             )}
 
                             <div className="space-y-2">
-                              {/* Lógica de Precio Regular: USD vs ARS */}
-                              {producto.precio_usd ? (
-                                <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                                  <div className="text-left">
-                                    <p className="font-semibold text-blue-900">Precio USD</p>
-                                    <p className="text-sm text-gray-600">
-                                      USD ${producto.precio_usd.toLocaleString()}
+                              <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                                <div className="text-left">
+                                  <p className="font-semibold text-blue-900">Precio</p>
+                                  <p className="text-sm text-gray-600">
+                                    USD ${producto.precio_usd.toLocaleString()}
+                                  </p>
+                                  {dolarOficial && (
+                                    <p className="text-xs text-gray-500">
+                                      ARS ${(producto.precio_usd * dolarOficial).toLocaleString()}
                                     </p>
-                                    {dolarOficial && (
-                                      <p className="text-xs text-gray-500">
-                                        ARS ${(producto.precio_usd * dolarOficial).toLocaleString()}
-                                      </p>
-                                    )}
-                                  </div>
-                                  <button
-                                    onClick={() => {
-                                      addToCart({
-                                        id: producto.id,
-                                        name: producto.nombre,
-                                        quantity: 1,
-                                        price: producto.precio_usd * (dolarOficial || 1000),
-                                        image: producto.imagen_url
-                                      });
-                                    }}
-                                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition flex items-center gap-2"
-                                  >
-                                    <ShoppingCart size={16} />
-                                    Añadir
-                                  </button>
+                                  )}
                                 </div>
-                              ) : producto.precio_ars ? (
-                                <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                                  <div className="text-left">
-                                    <p className="font-semibold text-blue-900">Precio</p>
-                                    <p className="text-lg font-bold text-gray-800">
-                                      ${parseFloat(producto.precio_ars).toLocaleString()}
-                                    </p>
-                                    <p className="text-xs text-gray-500">Pesos Argentinos</p>
-                                  </div>
-                                  <button
-                                    onClick={() => {
-                                      addToCart({
-                                        id: producto.id,
-                                        name: producto.nombre,
-                                        quantity: 1,
-                                        price: producto.precio_ars,
-                                        image: producto.imagen_url
-                                      });
-                                    }}
-                                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition flex items-center gap-2"
-                                  >
-                                    <ShoppingCart size={16} />
-                                    Añadir
-                                  </button>
-                                </div>
-                              ) : null}
+                                <button
+                                  onClick={() => {
+                                    addToCart({
+                                      id: producto.id,
+                                      name: producto.nombre,
+                                      quantity: 1,
+                                      price: producto.precio_usd * (dolarOficial || 1000),
+                                      image: producto.imagen_url
+                                    });
+                                  }}
+                                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition flex items-center gap-2"
+                                >
+                                  <ShoppingCart size={16} />
+                                  Añadir
+                                </button>
+                              </div>
 
-                              {/* Lógica de Precio Mayorista: USD vs ARS */}
-                              {producto.precio_mayorista_usd ? (
+                              {producto.precio_mayorista_usd && (
                                 <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
                                   <div className="text-left">
                                     <p className="font-semibold text-green-900">
@@ -753,34 +724,7 @@ const ProductSection = ({ id, cart, addToCart }) => {
                                     Añadir
                                   </button>
                                 </div>
-                              ) : producto.precio_mayorista_ars ? (
-                                <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                                  <div className="text-left">
-                                    <p className="font-semibold text-green-900">
-                                      Mayorista ({producto.cantidad_minima_mayorista}+ u)
-                                    </p>
-                                    <p className="text-lg font-bold text-gray-800">
-                                      ${parseFloat(producto.precio_mayorista_ars).toLocaleString()}
-                                    </p>
-                                    <p className="text-xs text-gray-500">Pesos Argentinos</p>
-                                  </div>
-                                  <button
-                                    onClick={() => {
-                                      addToCart({
-                                        id: producto.id,
-                                        name: `${producto.nombre} (Mayorista)`,
-                                        quantity: producto.cantidad_minima_mayorista,
-                                        price: producto.precio_mayorista_ars,
-                                        image: producto.imagen_url
-                                      });
-                                    }}
-                                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition flex items-center gap-2"
-                                  >
-                                    <ShoppingCart size={16} />
-                                    Añadir
-                                  </button>
-                                </div>
-                              ) : null}
+                              )}
                             </div>
                           </div>
                         </div>
@@ -837,65 +781,36 @@ const ProductSection = ({ id, cart, addToCart }) => {
                         )}
 
                         <div className="space-y-2">
-                          {/* Lógica de Precio Regular Filtrado */}
-                          {producto.precio_usd ? (
-                            <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                              <div className="text-left">
-                                <p className="font-semibold text-blue-900">Precio USD</p>
-                                <p className="text-sm text-gray-600">
-                                  USD ${producto.precio_usd.toLocaleString()}
+                          <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                            <div className="text-left">
+                              <p className="font-semibold text-blue-900">Precio</p>
+                              <p className="text-sm text-gray-600">
+                                USD ${producto.precio_usd.toLocaleString()}
+                              </p>
+                              {dolarOficial && (
+                                <p className="text-xs text-gray-500">
+                                  ARS ${(producto.precio_usd * dolarOficial).toLocaleString()}
                                 </p>
-                                {dolarOficial && (
-                                  <p className="text-xs text-gray-500">
-                                    ARS ${(producto.precio_usd * dolarOficial).toLocaleString()}
-                                  </p>
-                                )}
-                              </div>
-                              <button
-                                onClick={() => {
-                                  addToCart({
-                                    id: producto.id,
-                                    name: producto.nombre,
-                                    quantity: 1,
-                                    price: producto.precio_usd * (dolarOficial || 1000),
-                                    image: producto.imagen_url
-                                  });
-                                }}
-                                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition flex items-center gap-2"
-                              >
-                                <ShoppingCart size={16} />
-                                Añadir
-                              </button>
+                              )}
                             </div>
-                          ) : producto.precio_ars ? (
-                            <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                              <div className="text-left">
-                                <p className="font-semibold text-blue-900">Precio</p>
-                                <p className="text-lg font-bold text-gray-800">
-                                  ${parseFloat(producto.precio_ars).toLocaleString()}
-                                </p>
-                                <p className="text-xs text-gray-500">Pesos Argentinos</p>
-                              </div>
-                              <button
-                                onClick={() => {
-                                  addToCart({
-                                    id: producto.id,
-                                    name: producto.nombre,
-                                    quantity: 1,
-                                    price: producto.precio_ars,
-                                    image: producto.imagen_url
-                                  });
-                                }}
-                                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition flex items-center gap-2"
-                              >
-                                <ShoppingCart size={16} />
-                                Añadir
-                              </button>
-                            </div>
-                          ) : null}
+                            <button
+                              onClick={() => {
+                                addToCart({
+                                  id: producto.id,
+                                  name: producto.nombre,
+                                  quantity: 1,
+                                  price: producto.precio_usd * (dolarOficial || 1000),
+                                  image: producto.imagen_url
+                                });
+                              }}
+                              className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition flex items-center gap-2"
+                            >
+                              <ShoppingCart size={16} />
+                              Añadir
+                            </button>
+                          </div>
 
-                          {/* Lógica de Precio Mayorista Filtrado */}
-                          {producto.precio_mayorista_usd ? (
+                          {producto.precio_mayorista_usd && (
                             <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
                               <div className="text-left">
                                 <p className="font-semibold text-green-900">
@@ -926,34 +841,7 @@ const ProductSection = ({ id, cart, addToCart }) => {
                                 Añadir
                               </button>
                             </div>
-                          ) : producto.precio_mayorista_ars ? (
-                            <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                              <div className="text-left">
-                                <p className="font-semibold text-green-900">
-                                  Mayorista ({producto.cantidad_minima_mayorista}+ u)
-                                </p>
-                                <p className="text-lg font-bold text-gray-800">
-                                  ${parseFloat(producto.precio_mayorista_ars).toLocaleString()}
-                                </p>
-                                <p className="text-xs text-gray-500">Pesos Argentinos</p>
-                              </div>
-                              <button
-                                onClick={() => {
-                                  addToCart({
-                                    id: producto.id,
-                                    name: `${producto.nombre} (Mayorista)`,
-                                    quantity: producto.cantidad_minima_mayorista,
-                                    price: producto.precio_mayorista_ars,
-                                    image: producto.imagen_url
-                                  });
-                                }}
-                                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition flex items-center gap-2"
-                              >
-                                <ShoppingCart size={16} />
-                                Añadir
-                              </button>
-                            </div>
-                          ) : null}
+                          )}
                         </div>
                       </div>
                     </div>
@@ -1163,81 +1051,427 @@ const ProductSection = ({ id, cart, addToCart }) => {
           </div>
         )} */}
 
-        {/* Sección de características (siempre visible) */}
-        <div className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="bg-white p-8 rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition">
-            <div className="bg-blue-100 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
-              <svg
-                className="w-6 h-6 text-blue-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                ></path>
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold mb-3">
-              Velocidad de impresión
+        {/* ===== SECCIONES HARDCODEADAS COMENTADAS =====
+            Ahora los productos se muestran solo desde Supabase
+            Si necesitas productos hardcodeados, usa el fallback arriba
+        */}
+
+        {/* Sección de PCs - COMENTADA */}
+        {/* {(activeFilter === "all" || activeFilter === "pcs") && (
+          <div className="mt-16 text-center">
+            <h3 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-8">
+              <span className="border-b-4 border-blue-500 pb-2">
+                Nuestras PCs
+              </span>
             </h3>
-            <p className="text-gray-600">
-              Plotters de alta velocidad que reducen tus tiempos de producción
-              hasta en un 60% comparado con métodos tradicionales.
-            </p>
-          </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-4">
+              {pcs.map((pc) => (
+                <div
+                  key={pc.id}
+                  className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition cursor-pointer"
+                  onClick={() => handleProductClick(pc, "pcs")}
+                >
+                  <div className="h-48 overflow-hidden flex items-center justify-center bg-gray-100 relative">
+                    <img
+                      src={pc.image}
+                      alt={pc.name}
+                      className="max-w-full object-contain"
+                    />
+                    <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white p-1 rounded">
+                      <ZoomIn size={16} />
+                    </div>
+                  </div>
 
-          <div className="bg-white p-8 rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition">
-            <div className="bg-blue-100 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
-              <svg
-                className="w-6 h-6 text-blue-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
-                ></path>
-              </svg>
-            </div>
-            <h3 className="text-xl font-semibold mb-3">Papel especializado</h3>
-            <p className="text-gray-600">
-              Nuestros rollos de papel para tizado ofrecen la resistencia y
-              flexibilidad perfecta para el trabajo con patrones.
-            </p>
-          </div>
+                  <div className="p-6 flex flex-col justify-between h-full">
+                    <div>
+                      <div className="flex justify-between items-start">
+                        <h3 className="text-xl font-bold text-gray-900">
+                          {pc.name}
+                        </h3>
+                        <span className="bg-green-100 text-green-800 text-sm font-semibold px-2.5 py-0.5 rounded">
+                          {pc.category}
+                        </span>
+                      </div>
 
-          <div className="bg-white p-8 rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition">
-            <div className="bg-blue-100 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
-              <svg
-                className="w-6 h-6 text-blue-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                ></path>
-              </svg>
+                      <p className="mt-2 text-gray-600 line-clamp-2">
+                        {pc.description}
+                      </p>
+
+                      <div className="mt-4 text-sm text-gray-700 space-y-1 text-left">
+                        <p>
+                          <strong>Procesador:</strong> {pc.specs.procesador}
+                        </p>
+                        <p>
+                          <strong>Gráficos:</strong> {pc.specs.graficos}
+                        </p>
+                        <p>
+                          <strong>RAM:</strong> {pc.specs.ram}
+                        </p>
+                        <p>
+                          <strong>Almacenamiento:</strong>{" "}
+                          {pc.specs.almacenamiento}
+                        </p>
+                        <p>
+                          <strong>Mother:</strong> {pc.specs.mother}
+                        </p>
+                        <p>
+                          <strong>Sistema:</strong> {pc.specs.sistema}
+                        </p>
+                      </div>
+
+                      <div className="mt-4 text-sm text-gray-700 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <p>
+                            Combo Básico: ${pc.combos.basico.toLocaleString()}
+                          </p>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCart({
+                                ...pc,
+                                quantity: 1,
+                                price: pc.combos.basico,
+                              });
+                            }}
+                            className="bg-blue-600 text-white text-xs px-3 py-1 rounded hover:bg-blue-700"
+                          >
+                            Añadir
+                          </button>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <p>
+                            Con Monitor: $
+                            {pc.combos.conMonitor.toLocaleString()}
+                          </p>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCart({
+                                ...pc,
+                                quantity: 1,
+                                price: pc.combos.conMonitor,
+                              });
+                            }}
+                            className="bg-blue-600 text-white text-xs px-3 py-1 rounded hover:bg-blue-700"
+                          >
+                            Añadir
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-            <h3 className="text-xl font-semibold mb-3">Soporte técnico</h3>
-            <p className="text-gray-600">
-              Asesoramiento permanente por expertos en patronaje digital.
-              Instalación, capacitación y mantenimiento incluido.
-            </p>
           </div>
+        )} */}
+
+        {/* Sección de Kits de Cámaras - COMENTADA */}
+        {/* {(activeFilter === "all" || activeFilter === "kitCameras") && (
+          <div className="mt-16 text-center">
+            <h3 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-8">
+              <span className="border-b-4 border-blue-500 pb-2">
+                Nuestros Kits de Cámaras
+              </span>
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-4">
+              {kitCameras.kits.map((kit) => (
+                <div
+                  key={kit.id}
+                  className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition cursor-pointer"
+                  onClick={() => handleProductClick(kit, "kitCameras")}
+                >
+                  <div className="h-48 overflow-hidden relative">
+                    <img
+                      src={kit.image}
+                      alt={kit.name}
+                      className="h-full object-cover w-full"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src =
+                          "https://via.placeholder.com/300x200?text=Kit+de+Cámaras";
+                      }}
+                    />
+                    <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white p-1 rounded">
+                      <ZoomIn size={16} />
+                    </div>
+                  </div>
+
+                  <div className="p-6 flex flex-col justify-between h-full">
+                    <div>
+                      <div className="flex justify-between items-start">
+                        <h3 className="text-xl font-bold text-gray-900">
+                          {kit.name}
+                        </h3>
+                        <span className="bg-blue-100 text-blue-800 text-sm font-semibold px-2.5 py-0.5 rounded">
+                          {kit.category}
+                        </span>
+                      </div>
+
+                      <p className="mt-2 text-gray-600 line-clamp-2">
+                        {kit.description}
+                      </p>
+
+                      <div className="mt-4 text-sm text-gray-700 space-y-2">
+                        <div className="flex items-center justify-between">
+                          <p>
+                            <span className="font-semibold">Kit:</span> $
+                            {dolarOficial
+                              ? (kit.price * dolarOficial).toLocaleString()
+                              : "Cargando..."}
+                          </p>
+
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCart({
+                                ...kit,
+                                quantity: 1,
+                                price: kit.price * dolarOficial,
+                                name: kit.name,
+                              });
+                            }}
+                            className="bg-blue-600 text-white text-xs px-3 py-1 rounded hover:bg-blue-700 transition"
+                          >
+                            Añadir
+                          </button>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <p>
+                            <span className="font-semibold">
+                              + instalación:
+                            </span>{" "}
+                            {dolarOficial
+                              ? (
+                                kit.price *
+                                dolarOficial *
+                                1.6
+                              ).toLocaleString()
+                              : "Cargando..."}
+                          </p>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCart({
+                                ...kit,
+                                quantity: 1,
+                                price: kit.price * dolarOficial * 1.6,
+                                name: kit.name,
+                              });
+                            }}
+                            className="bg-blue-600 text-white text-xs px-3 py-1 rounded hover:bg-blue-700 transition"
+                          >
+                            Añadir
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Especificaciones */}
+        <div className="mt-4 text-xs text-left text-gray-500 space-y-1">
+          <p>
+            <strong>DVR:</strong> {kit.specs.dvr}
+          </p>
+          <p>
+            <strong>Cámaras:</strong> {kit.specs.cameras}
+          </p>
+          <p>
+            <strong>Balunes:</strong> {kit.specs.baluns}
+          </p>
+          <p>
+            <strong>Plugs:</strong> {kit.specs.plugs}
+          </p>
+          <p>
+            <strong>Splitter:</strong> {kit.specs.splitter}
+          </p>
+          <p>
+            <strong>Cable:</strong> {kit.specs.cable}
+          </p>
+          <p>
+            <strong>Fuente:</strong> {kit.specs.power}
+          </p>
         </div>
       </div>
-    </section>
+    </div>
+                </div >
+              ))}
+            </div >
+          </div >
+        )}
+
+{/* Sección de Cámaras IMOU - COMENTADA */ }
+{
+  /* (activeFilter === "all" || activeFilter === "imouCams") && (
+    <div className="mt-20 text-center">
+      <h3 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-10">
+        <span className="border-b-4 border-green-500 pb-2">
+          Cámaras IMOU Inteligentes
+        </span>
+      </h3>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 px-4">
+        {imouCams.imous.map((cam) => (
+          <div
+            key={cam.id}
+            className="bg-white rounded-2xl shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition cursor-pointer"
+            onClick={() => handleProductClick(cam, "imouCams")}
+          >
+            {/* Imagen */}
+<div className="h-56 bg-gray-50 flex items-center justify-center relative">
+  <img
+    src={cam.image}
+    alt={cam.name}
+    className="h-full object-contain"
+    onError={(e) => {
+      e.target.onerror = null;
+      e.target.src =
+        "https://via.placeholder.com/300x200?text=Cámara+IMOU";
+    }}
+  />
+  <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white p-1 rounded">
+    <ZoomIn size={16} />
+  </div>
+</div>
+
+{/* Contenido */ }
+<div className="p-6 flex flex-col h-full">
+  {/* Header */}
+  <div className="flex justify-between items-start">
+    <h3 className="text-lg font-bold text-gray-900">
+      {cam.name}
+    </h3>
+    <span className="bg-green-100 text-green-800 text-xs font-semibold px-2 py-1 rounded">
+      {cam.category}
+    </span>
+  </div>
+
+  {/* Descripción */}
+  <p className="mt-3 text-gray-600 text-sm line-clamp-2">
+    {cam.description}
+  </p>
+
+  {/* Precios */}
+  <div className="mt-5 space-y-3 text-sm text-gray-700">
+    <div className="flex items-center justify-between">
+      <p>
+        <span className="font-semibold">Unidad:</span> $
+        {dolarOficial
+          ? (cam.price * dolarOficial).toLocaleString()
+          : "Cargando..."}
+      </p>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          addToCart({
+            ...cam,
+            quantity: 1,
+            price: cam.price * dolarOficial,
+            name: cam.name,
+          });
+        }}
+        className="flex items-center gap-1 bg-green-600 text-white text-xs px-3 py-1.5 rounded hover:bg-green-700 transition"
+      >
+        <ShoppingCart size={14} />
+        Añadir
+      </button>
+    </div>
+  </div>
+
+  {/* Specs */}
+  <div className="mt-4 text-xs text-left text-gray-500 space-y-1">
+    {Object.entries(cam.specs).map(([key, value]) => (
+      <p key={key}>
+        <strong>
+          {key.charAt(0).toUpperCase() + key.slice(1)}:
+        </strong>{" "}
+        {value}
+      </p>
+    ))}
+  </div>
+</div>
+          </div >
+        ))}
+      </div >
+    </div >
+  )
+}
+
+{/* Sección de características (siempre visible) */ }
+<div className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-8">
+  <div className="bg-white p-8 rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition">
+    <div className="bg-blue-100 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
+      <svg
+        className="w-6 h-6 text-blue-600"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+          d="M13 10V3L4 14h7v7l9-11h-7z"
+        ></path>
+      </svg>
+    </div>
+    <h3 className="text-xl font-semibold mb-3">
+      Velocidad de impresión
+    </h3>
+    <p className="text-gray-600">
+      Plotters de alta velocidad que reducen tus tiempos de producción
+      hasta en un 60% comparado con métodos tradicionales.
+    </p>
+  </div>
+
+  <div className="bg-white p-8 rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition">
+    <div className="bg-blue-100 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
+      <svg
+        className="w-6 h-6 text-blue-600"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+          d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+        ></path>
+      </svg>
+    </div>
+    <h3 className="text-xl font-semibold mb-3">Papel especializado</h3>
+    <p className="text-gray-600">
+      Nuestros rollos de papel para tizado ofrecen la resistencia y
+      flexibilidad perfecta para el trabajo con patrones.
+    </p>
+  </div>
+
+  <div className="bg-white p-8 rounded-xl shadow-md border border-gray-100 hover:shadow-lg transition">
+    <div className="bg-blue-100 w-12 h-12 rounded-lg flex items-center justify-center mb-4">
+      <svg
+        className="w-6 h-6 text-blue-600"
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+        ></path>
+      </svg>
+    </div>
+    <h3 className="text-xl font-semibold mb-3">Soporte técnico</h3>
+    <p className="text-gray-600">
+      Asesoramiento permanente por expertos en patronaje digital.
+      Instalación, capacitación y mantenimiento incluido.
+    </p>
+  </div>
+</div>
+      </div >
+    </section >
   );
 };
 

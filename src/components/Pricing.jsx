@@ -1,4 +1,18 @@
-import { CheckCircle2 } from "lucide-react";
+/* ========================================
+ * ARCHIVO DESACTIVADO - NO SE USA
+ * ========================================
+ * Este componente fue desactivado porque:
+ * 1. No se utiliza en la aplicación actual
+ * 2. Es un componente de precios que no aplica al modelo de negocio actual
+ * 3. Depende de pricingOptions que no está definido en constants
+ * 
+ * Para reactivar:
+ * 1. Definir pricingOptions en ../constants
+ * 2. Importar y usar en alguna página
+ * ========================================
+ */
+
+/* import { CheckCircle2 } from "lucide-react";
 import { pricingOptions } from "../constants";
 
 const Pricing = () => {
@@ -46,3 +60,4 @@ const Pricing = () => {
 };
 
 export default Pricing;
+ */

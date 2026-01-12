@@ -1,0 +1,144 @@
+{
+    "name": "1. Subir PDFs (v2.2.4 Compatible)",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "upload-pdf",
+                "responseMode": "lastNode",
+                "options": {
+                    "binaryData": true
+                }
+            },
+            "id": "8d6f71bb-71fc-43a5-85c0-2134ca25ccef",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                240,
+                340
+            ],
+            "webhookId": "upload-pdf-webhook"
+        },
+        {
+            "parameters": {
+                "tableName": "manual_audaces",
+                "options": {}
+            },
+            "id": "46cc6a87-3b13-42e2-9a7a-805fa0f5b513",
+            "name": "Supabase Vector Store",
+            "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+            "typeVersion": 1,
+            "position": [
+                700,
+                340
+            ],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "KNKlHMOX61QUBGQB",
+                    "name": "Supabase account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "options": {}
+            },
+            "id": "fa5e95e5-a869-4748-b863-81993e5f74a9",
+            "name": "OpenAI Embeddings",
+            "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+            "typeVersion": 1,
+            "position": [
+                920,
+                460
+            ],
+            "credentials": {
+                "openAiApi": {
+                    "id": "BH0Yo1m5LqkiZsrz",
+                    "name": "OpenAi account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "dataType": "binary",
+                "binaryPropertyName": "data",
+                "options": {}
+            },
+            "id": "4d587e82-6007-428f-b9c3-7e511d87b4c9",
+            "name": "Default Data Loader",
+            "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+            "typeVersion": 1.1,
+            "position": [
+                920,
+                340
+            ]
+        },
+        {
+            "parameters": {
+                "chunkSize": 1000,
+                "chunkOverlap": 200,
+                "options": {}
+            },
+            "id": "a89c1baf-2383-4589-80b8-bfdf225cf6ea",
+            "name": "Text Splitter",
+            "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+            "typeVersion": 1,
+            "position": [
+                920,
+                220
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Supabase Vector Store",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "OpenAI Embeddings": {
+            "ai_embedding": [
+                [
+                    {
+                        "node": "Supabase Vector Store",
+                        "type": "ai_embedding",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Default Data Loader": {
+            "ai_document": [
+                [
+                    {
+                        "node": "Supabase Vector Store",
+                        "type": "ai_document",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Text Splitter": {
+            "ai_textSplitter": [
+                [
+                    {
+                        "node": "Default Data Loader",
+                        "type": "ai_textSplitter",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": true,
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "id": "fCuu0Uv9fMmcVx11"
+}

@@ -1,0 +1,55 @@
+import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
+import { LogOut, Package, FileText, BarChart3, Folder } from 'lucide-react';
+import './Dashboard.css';
+
+export default function Dashboard() {
+    const { user, signOut } = useAuth();
+    const navigate = useNavigate();
+
+    const handleLogout = async () => {
+        await signOut();
+        navigate('/login');
+    };
+
+    return (
+        <div className="dashboard-container">
+            <header className="dashboard-header">
+                <div>
+                    <h1>Panel de Administración</h1>
+                    <p>Bienvenido, {user?.email}</p>
+                </div>
+                <button onClick={handleLogout} className="logout-button">
+                    <LogOut size={18} />
+                    Cerrar Sesión
+                </button>
+            </header>
+
+            <div className="dashboard-grid">
+                <div className="dashboard-card" onClick={() => navigate('/admin/products')}>
+                    <Package size={32} />
+                    <h2>Gestionar Productos</h2>
+                    <p>Agregar, editar y administrar productos</p>
+                </div>
+
+                <div className="dashboard-card" onClick={() => navigate('/admin/categories')}>
+                    <Folder size={32} />
+                    <h2>Gestionar Categorías</h2>
+                    <p>Crear y organizar categorías de productos</p>
+                </div>
+
+                <div className="dashboard-card" onClick={() => navigate('/admin/upload-pdf')}>
+                    <FileText size={32} />
+                    <h2>Subir Manuales PDF</h2>
+                    <p>Cargar manuales de Audaces al sistema</p>
+                </div>
+
+                <div className="dashboard-card">
+                    <BarChart3 size={32} />
+                    <h2>Estadísticas</h2>
+                    <p>Próximamente</p>
+                </div>
+            </div>
+        </div>
+    );
+}

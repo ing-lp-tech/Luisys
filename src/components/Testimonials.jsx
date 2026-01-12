@@ -1,4 +1,18 @@
-import { testimonials } from "../constants";
+/* ========================================
+ * ARCHIVO DESACTIVADO - NO SE USA
+ * ========================================
+ * Este componente fue desactivado porque:
+ * 1. No se utiliza en la aplicación actual
+ * 2. Es un componente de testimonios que no está implementado
+ * 3. Depende de testimonials que no está definido en constants
+ * 
+ * Para reactivar:
+ * 1. Definir testimonials en ../constants
+ * 2. Importar y usar en alguna página
+ * ========================================
+ */
+
+/* import { testimonials } from "../constants";
 
 const Testimonials = () => {
   return (
@@ -33,3 +47,4 @@ const Testimonials = () => {
 };
 
 export default Testimonials;
+ */

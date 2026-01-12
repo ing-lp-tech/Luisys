@@ -1,0 +1,164 @@
+{
+    "name": "1. Subir PDFs - FINAL",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "upload-pdf",
+                "responseMode": "lastNode",
+                "options": {
+                    "binaryData": true
+                }
+            },
+            "id": "webhook-upload",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                240,
+                340
+            ],
+            "webhookId": "upload-pdf-webhook"
+        },
+        {
+            "parameters": {
+                "jsCode": "// Pass through the binary PDF data\nreturn items;"
+            },
+            "id": "code-passthrough",
+            "name": "Process PDF",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                460,
+                340
+            ]
+        },
+        {
+            "parameters": {
+                "mode": "insert",
+                "tableName": "manual_audaces",
+                "options": {}
+            },
+            "id": "vector-store",
+            "name": "Supabase Vector Store",
+            "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+            "typeVersion": 1,
+            "position": [
+                920,
+                340
+            ],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "KNKlHMOX61QUBGQB",
+                    "name": "Supabase account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "options": {}
+            },
+            "id": "embeddings",
+            "name": "OpenAI Embeddings",
+            "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+            "typeVersion": 1,
+            "position": [
+                1140,
+                460
+            ],
+            "credentials": {
+                "openAiApi": {
+                    "id": "BH0Yo1m5LqkiZsrz",
+                    "name": "OpenAi account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "dataType": "binary",
+                "binaryPropertyName": "data",
+                "options": {}
+            },
+            "id": "data-loader",
+            "name": "Default Data Loader",
+            "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+            "typeVersion": 1.1,
+            "position": [
+                1140,
+                340
+            ]
+        },
+        {
+            "parameters": {
+                "chunkSize": 1000,
+                "chunkOverlap": 200,
+                "options": {}
+            },
+            "id": "text-splitter",
+            "name": "Text Splitter",
+            "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+            "typeVersion": 1,
+            "position": [
+                1140,
+                220
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Process PDF",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Process PDF": {
+            "main": [
+                [
+                    {
+                        "node": "Supabase Vector Store",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "OpenAI Embeddings": {
+            "ai_embedding": [
+                [
+                    {
+                        "node": "Supabase Vector Store",
+                        "type": "ai_embedding",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Default Data Loader": {
+            "ai_document": [
+                [
+                    {
+                        "node": "Supabase Vector Store",
+                        "type": "ai_document",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Text Splitter": {
+            "ai_textSplitter": [
+                [
+                    {
+                        "node": "Default Data Loader",
+                        "type": "ai_textSplitter",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

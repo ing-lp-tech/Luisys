@@ -1,0 +1,139 @@
+{
+    "name": "Cargador de Manuales PDF (Corregido)",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "upload-manual",
+                "responseMode": "lastNode",
+                "options": {
+                    "binaryData": true
+                }
+            },
+            "id": "4774c55a-8218-4d1f-81d2-73245f310be7",
+            "name": "Webhook (Receive PDF)",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                0,
+                0
+            ],
+            "webhookId": "audaces-upload-webhook"
+        },
+        {
+            "parameters": {
+                "tableName": "manual_audaces",
+                "options": {}
+            },
+            "id": "a2b2331e-16b7-4cfe-8b79-c02972728d90",
+            "name": "Supabase Vector Store (Insert)",
+            "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+            "typeVersion": 1,
+            "position": [
+                624,
+                0
+            ],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "J0H2bWpvGLIu0fgn",
+                    "name": "Supabase account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "options": {}
+            },
+            "id": "24ff9aa4-3931-4cec-bad7-504caa4055d5",
+            "name": "OpenAI Embeddings",
+            "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+            "typeVersion": 1,
+            "position": [
+                624,
+                220
+            ],
+            "credentials": {
+                "openAiApi": {
+                    "id": "FI7v7fqnkOATN4zP",
+                    "name": "OpenAi account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "dataType": "binary",
+                "binaryPropertyName": "data",
+                "options": {}
+            },
+            "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+            "typeVersion": 1.1,
+            "position": [
+                260,
+                -160
+            ],
+            "id": "ea7c0589-15e9-4b98-940f-96fbbd21065e",
+            "name": "Default Data Loader"
+        },
+        {
+            "parameters": {
+                "chunkSize": 1000,
+                "chunkOverlap": 200,
+                "options": {}
+            },
+            "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+            "typeVersion": 1,
+            "position": [
+                260,
+                40
+            ],
+            "id": "6d30a883-78e6-4fac-ac8b-933f132427c1",
+            "name": "Recursive Character Text Splitter"
+        }
+    ],
+    "connections": {
+        "Webhook (Receive PDF)": {
+            "main": [
+                [
+                    {
+                        "node": "Supabase Vector Store (Insert)",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "OpenAI Embeddings": {
+            "ai_embedding": [
+                [
+                    {
+                        "node": "Supabase Vector Store (Insert)",
+                        "type": "ai_embedding",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Default Data Loader": {
+            "ai_document": [
+                [
+                    {
+                        "node": "Supabase Vector Store (Insert)",
+                        "type": "ai_document",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Recursive Character Text Splitter": {
+            "ai_textSplitter": [
+                [
+                    {
+                        "node": "Default Data Loader",
+                        "type": "ai_textSplitter",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

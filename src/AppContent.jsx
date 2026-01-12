@@ -84,12 +84,25 @@ import ComunidadPage from "./components/ComunidadPage";
 import ImportacionPage from "./components/ImportacionPage";
 import FAQ from "./components/Faq";
 import SEO from "./components/SEO"; // Import SEO component
+import ManualUploader from "./components/ManualUploader";
+import ChatAudaces from "./components/ChatAudaces";
+import ChatAudacesWidget from "./components/ChatAudacesWidget"; // Chat para admin
+import ChatVendedor from "./components/ChatVendedor"; // Chat para ventas (público)
+import "./components/ChatAudaces.css";
+import Login from "./pages/Login";
+import Dashboard from "./pages/admin/Dashboard";
+import ProductManager from "./pages/admin/ProductManager";
+import CategoryManager from "./pages/admin/CategoryManager";
+import ProtectedRoute from "./components/ProtectedRoute";
 import { useEffect, useState } from "react";
 
 const AppContent = ({ cart, addToCart, removeFromCart }) => {
   const [dolarOficial, setDolarOficial] = useState(null);
   const location = useLocation();
   const isComunidad = location.pathname === "/comunidad";
+
+  // Determinar si estamos en una ruta admin
+  const isAdminRoute = location.pathname.startsWith('/admin');
 
   useEffect(() => {
     const fetchDolar = async () => {
@@ -157,10 +170,48 @@ const AppContent = ({ cart, addToCart, removeFromCart }) => {
               </>
             }
           />
+          <Route path="/upload-manual" element={<ManualUploader />} />
+          <Route path="/chat-audaces" element={<ChatAudaces />} />
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/admin/dashboard"
+            element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/upload-pdf"
+            element={
+              <ProtectedRoute>
+                <ManualUploader />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/products"
+            element={
+              <ProtectedRoute>
+                <ProductManager />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/categories"
+            element={
+              <ProtectedRoute>
+                <CategoryManager />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </div>
 
       <Footer id="contacto" />
+
+      {/* Renderizar chatbot según la ruta */}
+      {isAdminRoute ? <ChatAudacesWidget /> : <ChatVendedor />}
     </>
   );
 };

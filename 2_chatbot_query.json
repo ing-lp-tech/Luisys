@@ -1,0 +1,175 @@
+{
+    "name": "2. Chatbot - Consultar PDFs (v2.2.4)",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "chat",
+                "responseMode": "lastNode",
+                "options": {}
+            },
+            "id": "webhook-chat",
+            "name": "Webhook Chat",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                240,
+                340
+            ],
+            "webhookId": "chat-webhook"
+        },
+        {
+            "parameters": {
+                "promptType": "define",
+                "text": "={{ $json.body.question || $json.body.message }}",
+                "options": {
+                    "systemMessage": "Eres un asistente experto en manuales de Audaces. Responde las preguntas basándote únicamente en la información de los documentos disponibles."
+                }
+            },
+            "id": "ai-agent-query",
+            "name": "AI Agent",
+            "type": "@n8n/n8n-nodes-langchain.agent",
+            "typeVersion": 1.6,
+            "position": [
+                480,
+                340
+            ]
+        },
+        {
+            "parameters": {
+                "options": {
+                    "temperature": 0.3
+                }
+            },
+            "id": "openai-chat",
+            "name": "OpenAI Chat Model",
+            "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+            "typeVersion": 1,
+            "position": [
+                700,
+                460
+            ],
+            "credentials": {
+                "openAiApi": {
+                    "id": "FI7v7fqnkOATN4zP",
+                    "name": "OpenAi account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "name": "manual_search",
+                "description": "Busca información en los manuales de Audaces"
+            },
+            "id": "vector-retriever",
+            "name": "Vector Store Tool",
+            "type": "@n8n/n8n-nodes-langchain.toolVectorStore",
+            "typeVersion": 1,
+            "position": [
+                700,
+                340
+            ]
+        },
+        {
+            "parameters": {
+                "tableName": "manual_audaces",
+                "options": {}
+            },
+            "id": "vector-store-query",
+            "name": "Supabase Vector Store",
+            "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+            "typeVersion": 1,
+            "position": [
+                920,
+                340
+            ],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "J0H2bWpvGLIu0fgn",
+                    "name": "Supabase account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "options": {}
+            },
+            "id": "openai-embeddings-query",
+            "name": "OpenAI Embeddings",
+            "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+            "typeVersion": 1,
+            "position": [
+                920,
+                460
+            ],
+            "credentials": {
+                "openAiApi": {
+                    "id": "FI7v7fqnkOATN4zP",
+                    "name": "OpenAi account"
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Webhook Chat": {
+            "main": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "OpenAI Chat Model": {
+            "ai_languageModel": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    },
+                    {
+                        "node": "Vector Store Tool",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Vector Store Tool": {
+            "ai_tool": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_tool",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Supabase Vector Store": {
+            "ai_vectorStore": [
+                [
+                    {
+                        "node": "Vector Store Tool",
+                        "type": "ai_vectorStore",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "OpenAI Embeddings": {
+            "ai_embedding": [
+                [
+                    {
+                        "node": "Supabase Vector Store",
+                        "type": "ai_embedding",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

@@ -1,0 +1,54 @@
+{
+    "name": "1. Subir PDFs - SOLUCIÓN DEFINITIVA",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "upload-pdf",
+                "responseMode": "lastNode",
+                "options": {
+                    "binaryData": true
+                }
+            },
+            "id": "webhook-node",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                240,
+                340
+            ],
+            "webhookId": "upload-pdf-webhook"
+        },
+        {
+            "parameters": {
+                "jsCode": "const { createClient } = require('@supabase/supabase-js');\nconst OpenAI = require('openai');\nconst pdf = require('pdf-parse');\n\n// Configuración con tus credenciales\nconst SUPABASE_URL = 'process.env.SUPABASE_URL';\nconst SUPABASE_KEY = 'process.env.SUPABASE_KEY';\nconst OPENAI_API_KEY = 'process.env.OPENAI_API_KEY';\n\n// Clientes\nconst supabase = createClient(SUPABASE_URL, SUPABASE_KEY);\nconst openai = new OpenAI({ apiKey: OPENAI_API_KEY });\n\n// Obtener PDF del webhook\nconst binaryData = items[0].binary.data;\nif (!binaryData) {\n  throw new Error('No PDF received');\n}\n\nconst pdfBuffer = Buffer.from(binaryData.data, 'base64');\n\n// Extraer texto del PDF\nconst pdfData = await pdf(pdfBuffer);\nconst fullText = pdfData.text;\n\n// Dividir en chunks\nconst chunkSize = 1000;\nconst chunkOverlap = 200;\nconst chunks = [];\n\nfor (let i = 0; i < fullText.length; i += chunkSize - chunkOverlap) {\n  chunks.push(fullText.substring(i, i + chunkSize));\n}\n\n// Procesar cada chunk\nconst results = [];\nfor (const chunk of chunks) {\n  // Generar embedding con OpenAI\n  const embeddingResponse = await openai.embeddings.create({\n    model: 'text-embedding-ada-002',\n    input: chunk,\n  });\n  \n  const embedding = embeddingResponse.data[0].embedding;\n  \n  // Insertar en Supabase\n  const { data, error } = await supabase\n    .from('manual_audaces')\n    .insert({\n      content: chunk,\n      metadata: { filename: binaryData.fileName || 'manual.pdf' },\n      embedding: embedding\n    });\n  \n  if (error) {\n    console.error('Supabase error:', error);\n  } else {\n    results.push({ success: true, chunk: chunk.substring(0, 50) + '...' });\n  }\n}\n\nreturn {\n  json: {\n    success: true,\n    chunksProcessed: results.length,\n    totalChunks: chunks.length,\n    message: `Successfully processed ${results.length} chunks from PDF`\n  }\n};"
+            },
+            "id": "code-processor",
+            "name": "Process and Upload to Supabase",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                460,
+                340
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Process and Upload to Supabase",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "active": false,
+    "settings": {
+        "executionOrder": "v1"
+    }
+}

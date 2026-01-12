@@ -105,9 +105,16 @@ import logoluisys from "../assets/LogoLuisys.png";
 import { navItems } from "../constants";
 import { Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "../contexts/AuthContext";
+import { LogIn, User, LogOut } from "lucide-react";
 
 const Navbar = () => {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const { user, signOut } = useAuth();
+
+  const handleLogout = async () => {
+    await signOut();
+  };
 
   const toggleNavbar = () => {
     setMobileDrawerOpen(!mobileDrawerOpen);
@@ -126,7 +133,7 @@ const Navbar = () => {
           </Link>
 
           {/* Menú desktop */}
-          <ul className="hidden lg:flex gap-10 font-medium text-neutral-800">
+          <ul className="hidden lg:flex gap-10 font-medium text-neutral-800 items-center">
             {navItems.map((item, index) => (
               <li key={index}>
                 {item.href.startsWith("#") ? (
@@ -146,6 +153,36 @@ const Navbar = () => {
                 )}
               </li>
             ))}
+
+            {/* Login/Admin Button */}
+            <li>
+              {user ? (
+                <div className="flex items-center gap-4">
+                  <Link
+                    to="/admin/dashboard"
+                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all"
+                  >
+                    <User size={18} />
+                    Admin
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-all"
+                  >
+                    <LogOut size={18} />
+                    Salir
+                  </button>
+                </div>
+              ) : (
+                <Link
+                  to="/login"
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
+                >
+                  <LogIn size={18} />
+                  Login
+                </Link>
+              )}
+            </li>
           </ul>
 
           {/* Botón menú móvil */}
@@ -185,6 +222,39 @@ const Navbar = () => {
                     {item.label}
                   </Link>
                 )
+              )}
+
+              {/* Login/Admin Mobile */}
+              {user ? (
+                <>
+                  <Link
+                    to="/admin/dashboard"
+                    onClick={() => setMobileDrawerOpen(false)}
+                    className="w-full text-center py-4 text-lg tracking-wide border-b border-white/30 hover:text-yellow-300 transition-all flex items-center justify-center gap-2"
+                  >
+                    <User size={20} />
+                    Admin Panel
+                  </Link>
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setMobileDrawerOpen(false);
+                    }}
+                    className="w-full text-center py-4 text-lg tracking-wide hover:text-red-300 transition-all flex items-center justify-center gap-2"
+                  >
+                    <LogOut size={20} />
+                    Cerrar Sesión
+                  </button>
+                </>
+              ) : (
+                <Link
+                  to="/login"
+                  onClick={() => setMobileDrawerOpen(false)}
+                  className="w-full text-center py-4 text-lg tracking-wide hover:text-yellow-300 transition-all flex items-center justify-center gap-2"
+                >
+                  <LogIn size={20} />
+                  Login
+                </Link>
               )}
             </motion.div>
           )}

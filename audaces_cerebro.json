@@ -1,0 +1,219 @@
+{
+    "name": "Audaces Cerebro - Upload PDF",
+    "nodes": [
+        {
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "audaces-cerebro",
+                "responseMode": "lastNode",
+                "options": {
+                    "binaryData": true
+                }
+            },
+            "id": "webhook-upload",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 1,
+            "position": [
+                240,
+                340
+            ],
+            "webhookId": "audaces-cerebro-upload"
+        },
+        {
+            "parameters": {
+                "mode": "insert",
+                "text": "={{ $json.text }}",
+                "options": {}
+            },
+            "id": "ai-agent-insert",
+            "name": "AI Agent",
+            "type": "@n8n/n8n-nodes-langchain.agent",
+            "typeVersion": 1.6,
+            "position": [
+                700,
+                340
+            ]
+        },
+        {
+            "parameters": {
+                "options": {}
+            },
+            "id": "openai-model",
+            "name": "OpenAI Chat Model",
+            "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+            "typeVersion": 1,
+            "position": [
+                920,
+                460
+            ],
+            "credentials": {
+                "openAiApi": {
+                    "id": "FI7v7fqnkOATN4zP",
+                    "name": "OpenAi account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "tableName": "manual_audaces",
+                "options": {}
+            },
+            "id": "vector-store",
+            "name": "Supabase Vector Store",
+            "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+            "typeVersion": 1,
+            "position": [
+                920,
+                340
+            ],
+            "credentials": {
+                "supabaseApi": {
+                    "id": "J0H2bWpvGLIu0fgn",
+                    "name": "Supabase account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "options": {}
+            },
+            "id": "embeddings",
+            "name": "OpenAI Embeddings",
+            "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+            "typeVersion": 1,
+            "position": [
+                1140,
+                460
+            ],
+            "credentials": {
+                "openAiApi": {
+                    "id": "FI7v7fqnkOATN4zP",
+                    "name": "OpenAi account"
+                }
+            }
+        },
+        {
+            "parameters": {
+                "dataType": "binary",
+                "binaryPropertyName": "data",
+                "options": {}
+            },
+            "id": "data-loader",
+            "name": "Default Data Loader",
+            "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+            "typeVersion": 1.1,
+            "position": [
+                1140,
+                340
+            ]
+        },
+        {
+            "parameters": {
+                "chunkSize": 1000,
+                "chunkOverlap": 200,
+                "options": {}
+            },
+            "id": "text-splitter",
+            "name": "Text Splitter",
+            "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+            "typeVersion": 1,
+            "position": [
+                1140,
+                220
+            ]
+        },
+        {
+            "parameters": {
+                "jsCode": "// Extract text from the PDF binary data\nconst binaryData = items[0].binary.data;\n\nif (!binaryData) {\n  throw new Error('No PDF file received');\n}\n\n// Pass through the binary data for the Document Loader\n// and create a text field for the AI Agent\nreturn {\n  json: {\n    text: 'Processing PDF document for Audaces Cerebro vector storage',\n    filename: binaryData.fileName || 'manual.pdf'\n  },\n  binary: {\n    data: binaryData\n  }\n};"
+            },
+            "id": "code-node",
+            "name": "Process PDF",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                460,
+                340
+            ]
+        }
+    ],
+    "connections": {
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Process PDF",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Process PDF": {
+            "main": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "OpenAI Chat Model": {
+            "ai_languageModel": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_languageModel",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Supabase Vector Store": {
+            "ai_vectorStore": [
+                [
+                    {
+                        "node": "AI Agent",
+                        "type": "ai_vectorStore",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "OpenAI Embeddings": {
+            "ai_embedding": [
+                [
+                    {
+                        "node": "Supabase Vector Store",
+                        "type": "ai_embedding",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Default Data Loader": {
+            "ai_document": [
+                [
+                    {
+                        "node": "Supabase Vector Store",
+                        "type": "ai_document",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Text Splitter": {
+            "ai_textSplitter": [
+                [
+                    {
+                        "node": "Default Data Loader",
+                        "type": "ai_textSplitter",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    }
+}

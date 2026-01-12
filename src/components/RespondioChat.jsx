@@ -1,3 +1,19 @@
+/* ========================================
+ * ARCHIVO DESACTIVADO - NO SE USA
+ * ========================================
+ * Este componente fue desactivado porque:
+ * 1. No se utiliza en la aplicación actual
+ * 2. El cId (111b2907018f0ef23626a31b21f5492) no es válido
+ * 3. Causaba errores 403 Forbidden en la consola
+ * 
+ * Para reactivar:
+ * 1. Crear cuenta en respond.io
+ * 2. Obtener un cId válido
+ * 3. Reemplazar el cId en las líneas 10 y 30
+ * 4. Descomentar el import y uso en App.jsx
+ * ========================================
+ */
+
 /* import { useEffect } from "react";
 
 const RespondioChat = () => {
@@ -19,7 +35,7 @@ const RespondioChat = () => {
 export default RespondioChat;
  */
 
-import { useEffect } from "react";
+/* import { useEffect } from "react";
 
 const RespondioChat = () => {
   useEffect(() => {
@@ -51,3 +67,4 @@ const RespondioChat = () => {
 };
 
 export default RespondioChat;
+ */
