@@ -23,12 +23,35 @@ export default function ChatVendedor() {
         setLoading(true);
 
         try {
-            const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-            const response = await fetch(`${API_URL}/chat-vendedor`, {
+            // 1. Obtener y Sanitizar URL
+            let baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+            // Corrección de errores comunes en URL
+            baseUrl = baseUrl.trim();
+            if (baseUrl.startsWith('https:/') && !baseUrl.startsWith('https://')) {
+                baseUrl = baseUrl.replace('https:/', 'https://');
+            }
+            if (!baseUrl.startsWith('http')) {
+                // Si el usuario olvidó el protocolo
+                baseUrl = `https://${baseUrl}`;
+            }
+            // Quitar barra final si existe
+            if (baseUrl.endsWith('/')) {
+                baseUrl = baseUrl.slice(0, -1);
+            }
+
+            console.log('Sending request to:', `${baseUrl}/chat-vendedor`);
+
+            const response = await fetch(`${baseUrl}/chat-vendedor`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ question: input }),
             });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Server Error: ${response.status} ${response.statusText}. Details: ${errorText.substring(0, 50)}...`);
+            }
 
             const data = await response.json();
 
@@ -44,8 +67,7 @@ export default function ChatVendedor() {
                 ...prev,
                 {
                     role: "assistant",
-                    content: "Tuve un error. Intenta de nuevo.",
-                    debug: `Error: ${error.message} | URL: ${import.meta.env.VITE_API_URL}`
+                    content: "Mis disculpas, estoy teniendo dificultades técnicas momentáneas. Por favor intenta de nuevo en unos segundos.",
                 },
             ]);
         } finally {
@@ -71,7 +93,7 @@ export default function ChatVendedor() {
                             <img src={avatarLuisPatty} alt="IngeBot Vendedor" className="header-avatar" />
                             <div>
                                 <h3>IngeBot Vendedor</h3>
-                                <p style={{ fontSize: '10px' }}>v.DEBUG - {import.meta.env.VITE_API_URL ? 'API OK' : 'NO API'}</p>
+                                <p>Especialista en soluciones textiles</p>
                             </div>
                         </div>
                         <div className="header-actions">
@@ -86,7 +108,6 @@ export default function ChatVendedor() {
                             <div key={idx} className={`widget-message ${msg.role}`}>
                                 <div className="widget-message-content">
                                     <p style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</p>
-                                    {msg.debug && <p style={{ fontSize: '10px', color: 'red', marginTop: '5px' }}>{msg.debug}</p>}
                                 </div>
                             </div>
                         ))}
@@ -101,8 +122,6 @@ export default function ChatVendedor() {
                     </div>
 
                     <div className="audaces-widget-input">
-                        {/* Debug info hidden but checkable */}
-                        <div style={{ display: 'none' }}>Target: {import.meta.env.VITE_API_URL || 'Localhost'}</div>
                         <input
                             type="text"
                             value={input}
