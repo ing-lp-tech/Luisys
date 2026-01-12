@@ -5,6 +5,18 @@
     align-items: center;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     padding: 20px;
+    overflow-y: auto;
+    /* Permite scroll si la pantalla es pequeña */
+}
+
+/* Ajuste móvil: Evitar que el teclado oculte el botón */
+@media (max-width: 768px),
+(max-height: 700px) {
+    .login-container {
+        align-items: flex-start;
+        padding-top: 40px;
+        padding-bottom: 40px;
+    }
 }
 
 .login-card {

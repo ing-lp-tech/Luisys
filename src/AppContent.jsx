@@ -120,9 +120,9 @@ const AppContent = ({ cart, addToCart, removeFromCart }) => {
 
   return (
     <>
-      {!isComunidad && <Navbar />}
+      {!isComunidad && location.pathname !== '/login' && <Navbar />}
       <div className="max-w-7xl mx-auto pt-0 px-0">
-        {!isComunidad && <WhatsAppButton />}
+        {!isComunidad && location.pathname !== '/login' && <WhatsAppButton />}
 
         <Routes>
           <Route
@@ -208,10 +208,10 @@ const AppContent = ({ cart, addToCart, removeFromCart }) => {
         </Routes>
       </div>
 
-      <Footer id="contacto" />
+      {location.pathname !== '/login' && <Footer id="contacto" />}
 
-      {/* Renderizar chatbot según la ruta */}
-      {isAdminRoute ? <ChatAudacesWidget /> : <ChatVendedor />}
+      {/* Renderizar chatbot según la ruta, ocultar en login */}
+      {location.pathname !== '/login' && (isAdminRoute ? <ChatAudacesWidget /> : <ChatVendedor />)}
     </>
   );
 };

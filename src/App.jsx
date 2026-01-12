@@ -78,6 +78,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 const AppWithRouter = ({ cart, addToCart, removeFromCart }) => {
   const location = useLocation();
   const isAdminRoute = location.pathname.startsWith('/admin');
+  const isLoginRoute = location.pathname === '/login';
 
   return (
     <>
@@ -87,7 +88,7 @@ const AppWithRouter = ({ cart, addToCart, removeFromCart }) => {
         removeFromCart={removeFromCart}
       />
       {/* Renderizar chatbot según la ruta */}
-      {isAdminRoute ? <ChatAudacesWidget /> : <ChatVendedor />}
+      {!isLoginRoute && (isAdminRoute ? <ChatAudacesWidget /> : <ChatVendedor />)}
       {/* <RespondioChat /> */} {/* Temporalmente desactivado - necesita cId válido */}
     </>
   );

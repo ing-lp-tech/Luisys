@@ -103,17 +103,19 @@ import avatarLuisPattypng from "../assets/avatarLuisPatty-256x256.png";
 import logoluisys from "../assets/LogoLuisys.png";
 
 import { navItems } from "../constants";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../contexts/AuthContext";
 import { LogIn, User, LogOut } from "lucide-react";
 
 const Navbar = () => {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+  const navigate = useNavigate();
   const { user, signOut } = useAuth();
 
   const handleLogout = async () => {
     await signOut();
+    navigate("/");
   };
 
   const toggleNavbar = () => {

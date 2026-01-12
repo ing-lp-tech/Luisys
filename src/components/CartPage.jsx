@@ -105,15 +105,14 @@ const CartPage = ({ cart, removeFromCart }) => {
               <a
                 href={`https://wa.me/5491162021005?text=${encodeURIComponent(
                   `¡Hola! Quiero realizar esta compra:\n\n` +
-                    cart
-                      .map(
-                        (item, index) =>
-                          `${index + 1}. ${
-                            item.name
-                          } - $${item.price.toLocaleString()}`
-                      )
-                      .join("\n") +
-                    `\n\nTotal: $${total.toLocaleString()}`
+                  cart
+                    .map(
+                      (item, index) =>
+                        `${index + 1}. ${item.name
+                        } - $${item.price.toLocaleString()}`
+                    )
+                    .join("\n") +
+                  `\n\nTotal: $${total.toLocaleString()}`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
