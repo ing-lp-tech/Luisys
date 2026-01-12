@@ -9,8 +9,25 @@ const pdf = require('pdf-parse');
 const app = express();
 const upload = multer({ storage: multer.memoryStorage() });
 
-// CORS para tu app React
-app.use(cors({ origin: 'http://localhost:5173' }));
+// CORS configuration
+const allowedOrigins = [
+    'http://localhost:5173',
+    'https://luisys.vercel.app',
+    'https://ing-lp-tech-app-mayorista.vercel.app' // Fallback for other Vercel subdomains
+];
+
+app.use(cors({
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin) return callback(null, true);
+        // Allow any Vercel deployment or localhost
+        if (allowedOrigins.indexOf(origin) !== -1 || origin.endsWith('.vercel.app')) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    }
+}));
 app.use(express.json());
 
 // Configuración con variables de entorno
