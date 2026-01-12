@@ -23,8 +23,13 @@ export const AuthProvider = ({ children }) => {
         });
 
         // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user ?? null);
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_OUT') {
+                setUser(null);
+                setLoading(false);
+            } else {
+                setUser(session?.user ?? null);
+            }
         });
 
         return () => subscription.unsubscribe();
@@ -40,6 +45,7 @@ export const AuthProvider = ({ children }) => {
 
     const signOut = async () => {
         const { error } = await supabase.auth.signOut();
+        setUser(null); // Force state update immediately
         return { error };
     };
 

@@ -159,31 +159,23 @@ const Navbar = () => {
             {/* Login/Admin Button */}
             <li>
               {user ? (
-                <div className="flex items-center gap-4">
-                  <Link
-                    to="/admin/dashboard"
-                    className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all"
-                  >
-                    <User size={18} />
-                    Admin
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-2 px-4 py-2 border border-red-300 text-red-600 rounded-lg hover:bg-red-50 transition-all"
-                  >
-                    <LogOut size={18} />
-                    Salir
-                  </button>
-                </div>
+                <Link
+                  to="/admin/dashboard"
+                  className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all shadow-md hover:shadow-lg"
+                >
+                  <User size={18} />
+                  Admin
+                </Link>
               ) : (
                 <Link
                   to="/login"
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all shadow-md hover:shadow-lg"
                 >
                   <LogIn size={18} />
                   Login
                 </Link>
               )}
+
             </li>
           </ul>
 
@@ -237,16 +229,6 @@ const Navbar = () => {
                     <User size={20} />
                     Admin Panel
                   </Link>
-                  <button
-                    onClick={() => {
-                      handleLogout();
-                      setMobileDrawerOpen(false);
-                    }}
-                    className="w-full text-center py-4 text-lg tracking-wide hover:text-red-300 transition-all flex items-center justify-center gap-2"
-                  >
-                    <LogOut size={20} />
-                    Cerrar Sesión
-                  </button>
                 </>
               ) : (
                 <Link

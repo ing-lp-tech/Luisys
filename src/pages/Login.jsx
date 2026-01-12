@@ -68,15 +68,13 @@ export default function Login() {
                         />
                     </div>
 
-                    <button type="submit" disabled={loading} className="login-button">
-                        {loading ? (
-                            'Iniciando sesión...'
-                        ) : (
-                            <>
-                                <LogIn size={20} />
-                                Iniciar Sesión
-                            </>
-                        )}
+                    <button
+                        type="submit"
+                        disabled={loading}
+                        className="login-button"
+                        style={{ marginTop: '20px' }}
+                    >
+                        {loading ? 'Cargando...' : 'INGRESAR AL PANEL'}
                     </button>
                 </form>
 
