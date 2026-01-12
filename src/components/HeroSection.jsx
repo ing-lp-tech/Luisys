@@ -18,14 +18,14 @@ const HeroSection = ({ id, dolarOficial }) => {
 
   return (
     <>
-      <div id={id} className="flex flex-col items-center mt-6 mb-0 lg:mt-10">
+      <div id={id} className="flex flex-col items-center mt-4 mb-0 lg:mt-10 overflow-hidden w-full">
         {/* Mostrar dólar oficial con animación circular */}
         {dolarOficial && (
           <motion.div
-            className="mt-6 text-center"
+            className="mt-6 text-center px-4"
             animate={{
-              x: [0, 20, 0, -20, 0],
-              y: [0, -10, 0, 10, 0],
+              x: [0, 10, 0, -10, 0],
+              y: [0, -5, 0, 5, 0],
             }}
             transition={{
               duration: 6,
@@ -33,45 +33,48 @@ const HeroSection = ({ id, dolarOficial }) => {
               ease: "easeInOut",
             }}
           >
-            <p className="text-lg sm:text-xl font-semibold text-gray-800">
+            <p className="text-base sm:text-xl font-semibold text-gray-800 bg-white/50 backdrop-blur-sm p-2 rounded-lg border border-gray-100 shadow-sm inline-block">
               💵 Cotización dólar oficial{" "}
-              <span className="text-gray-600">(Banco Nación)</span>:
-              <span className="ml-2 text-blue-600 text-2xl">
+              <span className="text-gray-600 block sm:inline">(Banco Nación)</span>:
+              <span className="ml-2 text-blue-600 text-xl sm:text-2xl font-bold">
                 ${dolarOficial}
               </span>
             </p>
           </motion.div>
         )}
-        <div className="bg-gradient-to-b from-blue-50 to-white py-2 px-4 sm:px-6 lg:px-8">
+        <div className="bg-gradient-to-b from-blue-50 to-white py-8 px-4 sm:px-6 lg:px-8 w-full">
           <div className="max-w-7xl mx-auto">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-12">
-              <div className="md:w-1/2">
-                <div className="items-center justify-between">
+            <div className="flex flex-col-reverse md:flex-row items-center justify-between gap-8 md:gap-12">
+              <div className="w-full md:w-1/2 text-center md:text-left">
+                <div className="items-center justify-between hidden md:block">
                   <img
-                    className="w-full"
+                    className="w-full max-w-[200px] mb-4"
                     src={llegoIngeJPG}
                     alt="Plotter industrial en funcionamiento"
                   />
                 </div>
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
+                <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 mb-4 sm:mb-6 leading-tight">
                   Soluciones profesionales para{" "}
                   <span className="text-blue-600">patronaje digital</span>
                 </h1>
 
-                <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+                <p className="text-base sm:text-lg text-gray-600 mb-6 sm:mb-8 leading-relaxed max-w-2xl mx-auto md:mx-0">
                   Equipos y materiales de alta precisión para diseñadores y
                   fabricantes de moda. Maximiza la eficiencia en tu producción
                   con nuestros plotters industriales y papel técnico
                   especializado para tizado.
                 </p>
 
-                <div className="flex flex-col sm:flex-row gap-4 justify-center sm:justify-start">
-                  <button className="border border-blue-600 text-blue-600 hover:bg-blue-50 font-medium py-3 px-6 rounded-lg transition duration-300">
-                    <a href={whatsappUrl}>Solicitar Asesoría Técnica</a>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+                  <button className="bg-blue-600 text-white hover:bg-blue-700 font-bold py-3 px-8 rounded-full shadow-lg hover:shadow-xl transition duration-300 transform hover:-translate-y-1">
+                    <a href={whatsappUrl}>Contactar Ahora</a>
+                  </button>
+                  <button className="border-2 border-blue-600 text-blue-600 hover:bg-blue-50 font-bold py-3 px-8 rounded-full transition duration-300">
+                    <a href="#features">Ver Productos</a>
                   </button>
                 </div>
 
-                <div className="mt-8 flex items-center space-x-4">
+                <div className="mt-8 flex items-center justify-center md:justify-start space-x-4">
                   <div className="flex -space-x-2">
                     {/* Iconos de clientes o marcas */}
                   </div>
@@ -79,23 +82,34 @@ const HeroSection = ({ id, dolarOficial }) => {
               </div>
 
               {/* Imagen destacada */}
-              <div className="md:w-1/2 relative">
-                <img
-                  className="w-full rounded-xl shadow-2xl border border-gray-200"
-                  src={plotter2}
-                  alt="Plotter industrial en funcionamiento"
-                />
+              <div className="w-full md:w-1/2 relative">
+                <div className="relative rounded-2xl overflow-hidden shadow-2xl border-4 border-white">
+                  <img
+                    className="w-full object-cover transform hover:scale-105 transition duration-500"
+                    src={plotter2}
+                    alt="Plotter industrial en funcionamiento"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                </div>
+                {/* Mobile only additional logo if needed */}
+                <div className="md:hidden mt-4 flex justify-center">
+                  <img
+                    className="w-32 object-contain"
+                    src={llegoIngeJPG}
+                    alt="Logo"
+                  />
+                </div>
               </div>
             </div>
 
             {/* Logos de marcas o certificaciones */}
-            <div className="mt-20">
-              <h3 className="text-center text-gray-500 text-sm font-medium mb-6">
+            <div className="mt-16 sm:mt-20">
+              <h3 className="text-center text-gray-400 text-sm font-bold tracking-widest mb-8 uppercase">
                 TRABAJAMOS CON LAS MEJORES MARCAS
               </h3>
-              <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16">
+              <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition-all duration-500">
                 <img
-                  className="h-8 opacity-70 hover:opacity-100 transition"
+                  className="h-10 sm:h-12"
                   src={avatarLuisPatty}
                   alt="Marca 1"
                 />

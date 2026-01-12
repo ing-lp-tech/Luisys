@@ -302,7 +302,104 @@ const ProductModal = ({
         );
 
       default:
-        return null;
+        // Caso por defecto para productos genéricos (Supabase)
+        return (
+          <div className="space-y-4">
+            {/* Mostrar specs si existen como objeto plano */}
+            {product.specs && typeof product.specs === 'object' && (
+              <div className="text-sm text-gray-700 space-y-2 text-left mb-4 bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-semibold mb-2">Especificaciones:</h4>
+                {Object.entries(product.specs).map(([key, value]) => (
+                  <p key={key} className="capitalize">
+                    <strong>{key.replace(/_/g, ' ')}:</strong> {String(value)}
+                  </p>
+                ))}
+              </div>
+            )}
+
+            {/* Precio USD */}
+            {product.precio_usd && (
+              <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg">
+                <div>
+                  <p className="font-semibold text-blue-900">Precio Regular (USD):</p>
+                  <p className="text-xl font-bold">${product.precio_usd.toLocaleString()}</p>
+                  {dolarOficial && <p className="text-sm text-gray-600">ARS: ${(product.precio_usd * dolarOficial).toLocaleString()}</p>}
+                </div>
+                <button
+                  onClick={() => addToCart({ ...product, quantity: 1, price: product.precio_usd * (dolarOficial || 1000) })}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+                >
+                  <ShoppingCart size={18} />
+                  Añadir
+                </button>
+              </div>
+            )}
+
+            {/* Precio ARS */}
+            {product.precio_ars && (
+              <div className="flex justify-between items-center p-4 bg-blue-50 rounded-lg">
+                <div>
+                  <p className="font-semibold text-blue-900">Precio Regular (ARS):</p>
+                  <p className="text-xl font-bold">${parseFloat(product.precio_ars).toLocaleString()}</p>
+                </div>
+                <button
+                  onClick={() => addToCart({ ...product, quantity: 1, price: product.precio_ars })}
+                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+                >
+                  <ShoppingCart size={18} />
+                  Añadir
+                </button>
+              </div>
+            )}
+
+            {/* Precio Mayorista USD */}
+            {product.precio_mayorista_usd && (
+              <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
+                <div>
+                  <p className="font-semibold text-green-900">Mayorista (USD):</p>
+                  <p className="text-sm text-gray-600">Min: {product.cantidad_minima_mayorista}u</p>
+                  <p className="text-xl font-bold">${product.precio_mayorista_usd.toLocaleString()}</p>
+                  {dolarOficial && <p className="text-sm text-gray-600">ARS: ${(product.precio_mayorista_usd * dolarOficial).toLocaleString()}</p>}
+                </div>
+                <button
+                  onClick={() => addToCart({
+                    ...product,
+                    name: `${product.nombre} (Mayorista)`,
+                    quantity: product.cantidad_minima_mayorista,
+                    price: product.precio_mayorista_usd * (dolarOficial || 1000)
+                  })}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition flex items-center gap-2"
+                >
+                  <ShoppingCart size={18} />
+                  Añadir Pack
+                </button>
+              </div>
+            )}
+
+            {/* Precio Mayorista ARS */}
+            {product.precio_mayorista_ars && (
+              <div className="flex justify-between items-center p-4 bg-green-50 rounded-lg">
+                <div>
+                  <p className="font-semibold text-green-900">Mayorista (ARS):</p>
+                  <p className="text-sm text-gray-600">Min: {product.cantidad_minima_mayorista}u</p>
+                  <p className="text-xl font-bold">${parseFloat(product.precio_mayorista_ars).toLocaleString()}</p>
+                </div>
+                <button
+                  onClick={() => addToCart({
+                    ...product,
+                    name: `${product.nombre} (Mayorista)`,
+                    quantity: product.cantidad_minima_mayorista,
+                    price: product.precio_mayorista_ars
+                  })}
+                  className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition flex items-center gap-2"
+                >
+                  <ShoppingCart size={18} />
+                  Añadir Pack
+                </button>
+              </div>
+            )}
+          </div>
+        );
     }
   };
 
@@ -327,7 +424,7 @@ const ProductModal = ({
             <div className="md:w-1/2">
               <div className="h-64 md:h-96 overflow-hidden rounded-lg bg-gray-100 flex items-center justify-center">
                 <img
-                  src={product.image}
+                  src={product.image || product.imagen_url}
                   alt={product.nombre || product.name}
                   className="max-h-full max-w-full object-contain"
                   onError={(e) => {
@@ -504,72 +601,62 @@ const ProductSection = ({ id, cart, addToCart }) => {
         </Link>
 
         {/* Filtros */}
-        <div className="mt-10 flex flex-col items-center">
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="md:hidden flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg mb-4"
-          >
-            <Filter size={18} />
-            {showFilters ? "Ocultar Filtros" : "Mostrar Filtros"}
-          </button>
-
-          <div
-            className={`${showFilters ? "flex" : "hidden md:flex"
-              } flex-wrap justify-center gap-2 mb-8`}
-          >
+        {/* Filtros - Diseño Mobile con Scroll Horizontal */}
+        <div className="mt-10 w-full max-w-7xl mx-auto">
+          <div className="flex overflow-x-auto pb-4 gap-3 px-4 md:justify-center scrollbar-hide -mx-4 md:mx-0 snap-x">
             <button
               onClick={() => handleFilterChange("all")}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition ${activeFilter === "all"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              className={`flex-shrink-0 snap-start px-5 py-2.5 rounded-full text-sm font-semibold transition shadow-sm whitespace-nowrap ${activeFilter === "all"
+                ? "bg-blue-600 text-white shadow-blue-200"
+                : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
                 }`}
             >
-              Todos los productos
+              Todos
             </button>
             <button
               onClick={() => handleFilterChange("plotters")}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition ${activeFilter === "plotters"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              className={`flex-shrink-0 snap-start px-5 py-2.5 rounded-full text-sm font-semibold transition shadow-sm whitespace-nowrap ${activeFilter === "plotters"
+                ? "bg-blue-600 text-white shadow-blue-200"
+                : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
                 }`}
             >
               Plotters
             </button>
             <button
               onClick={() => handleFilterChange("papers")}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition ${activeFilter === "papers"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              className={`flex-shrink-0 snap-start px-5 py-2.5 rounded-full text-sm font-semibold transition shadow-sm whitespace-nowrap ${activeFilter === "papers"
+                ? "bg-blue-600 text-white shadow-blue-200"
+                : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
                 }`}
             >
               Papeles
             </button>
             <button
               onClick={() => handleFilterChange("pcs")}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition ${activeFilter === "pcs"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              className={`flex-shrink-0 snap-start px-5 py-2.5 rounded-full text-sm font-semibold transition shadow-sm whitespace-nowrap ${activeFilter === "pcs"
+                ? "bg-blue-600 text-white shadow-blue-200"
+                : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
                 }`}
             >
-              PCs
+              PCs Armadas
             </button>
             <button
               onClick={() => handleFilterChange("kitCameras")}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition ${activeFilter === "kitCameras"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              className={`flex-shrink-0 snap-start px-5 py-2.5 rounded-full text-sm font-semibold transition shadow-sm whitespace-nowrap ${activeFilter === "kitCameras"
+                ? "bg-blue-600 text-white shadow-blue-200"
+                : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
                 }`}
             >
-              Kits de Cámaras
+              Kits Seguridad
             </button>
             <button
               onClick={() => handleFilterChange("imouCams")}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition ${activeFilter === "imouCams"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+              className={`flex-shrink-0 snap-start px-5 py-2.5 rounded-full text-sm font-semibold transition shadow-sm whitespace-nowrap ${activeFilter === "imouCams"
+                ? "bg-blue-600 text-white shadow-blue-200"
+                : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
                 }`}
             >
-              Cámaras IMOU
+              Cámaras WiFi
             </button>
           </div>
         </div>
@@ -633,7 +720,8 @@ const ProductSection = ({ id, cart, addToCart }) => {
                       {productosCategoria.map((producto) => (
                         <div
                           key={producto.id}
-                          className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition"
+                          className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition cursor-pointer"
+                          onClick={() => handleProductClick(producto, 'generic')}
                         >
                           <div className="h-48 overflow-hidden">
                             <img

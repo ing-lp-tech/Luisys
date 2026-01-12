@@ -54,14 +54,14 @@ const CartPage = ({ cart, removeFromCart }) => {
                   <p className="text-gray-600 text-sm sm:text-base mt-1 line-clamp-2">
                     {item.description}
                   </p>
-                  <p className="text-base sm:text-lg font-bold mt-2">
-                    <div className="flex items-center justify-around mt-2">
-                      <p className="text-lg font-bold">
+                  <div className="mt-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mt-2">
+                      <p className="text-lg font-bold text-blue-600">
                         ${(item.price * item.quantity).toLocaleString()}
                       </p>
                       <button
                         onClick={() => removeFromCart(item.cartItemId)}
-                        className="flex items-center gap-2 text-sm text-red-600 bg-red-100 hover:bg-red-200 px-3 py-1.5 rounded-full font-medium transition"
+                        className="flex items-center justify-center gap-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-full font-medium transition w-full sm:w-auto"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
@@ -80,7 +80,7 @@ const CartPage = ({ cart, removeFromCart }) => {
                         Eliminar
                       </button>
                     </div>
-                  </p>
+                  </div>
                 </div>
               </div>
             ))}
