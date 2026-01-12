@@ -44,7 +44,8 @@ export default function ChatVendedor() {
                 ...prev,
                 {
                     role: "assistant",
-                    content: "Disculpa, tuve un problema de conexión. Por favor, contacta directamente al WhatsApp 1162020911 para una atención inmediata. 📱",
+                    content: "Tuve un error. Intenta de nuevo.",
+                    debug: `Error: ${error.message} | URL: ${import.meta.env.VITE_API_URL}`
                 },
             ]);
         } finally {
@@ -70,7 +71,7 @@ export default function ChatVendedor() {
                             <img src={avatarLuisPatty} alt="IngeBot Vendedor" className="header-avatar" />
                             <div>
                                 <h3>IngeBot Vendedor</h3>
-                                <p>Especialista en soluciones textiles</p>
+                                <p style={{ fontSize: '10px' }}>v.DEBUG - {import.meta.env.VITE_API_URL ? 'API OK' : 'NO API'}</p>
                             </div>
                         </div>
                         <div className="header-actions">
@@ -85,6 +86,7 @@ export default function ChatVendedor() {
                             <div key={idx} className={`widget-message ${msg.role}`}>
                                 <div className="widget-message-content">
                                     <p style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</p>
+                                    {msg.debug && <p style={{ fontSize: '10px', color: 'red', marginTop: '5px' }}>{msg.debug}</p>}
                                 </div>
                             </div>
                         ))}
@@ -99,6 +101,8 @@ export default function ChatVendedor() {
                     </div>
 
                     <div className="audaces-widget-input">
+                        {/* Debug info hidden but checkable */}
+                        <div style={{ display: 'none' }}>Target: {import.meta.env.VITE_API_URL || 'Localhost'}</div>
                         <input
                             type="text"
                             value={input}
