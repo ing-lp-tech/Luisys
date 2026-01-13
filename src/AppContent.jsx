@@ -93,6 +93,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/admin/Dashboard";
 import ProductManager from "./pages/admin/ProductManager";
 import CategoryManager from "./pages/admin/CategoryManager";
+import { SiteConfigEditor } from "./components/admin/SiteConfigEditor";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useEffect, useState } from "react";
 
@@ -202,6 +203,22 @@ const AppContent = ({ cart, addToCart, removeFromCart }) => {
             element={
               <ProtectedRoute>
                 <CategoryManager />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/site-config"
+            element={
+              <ProtectedRoute>
+                <div className="p-4 md:p-8 bg-gray-100 min-h-screen">
+                  <div className="max-w-7xl mx-auto">
+                    <div className="mb-6">
+                      <h1 className="text-3xl font-bold text-gray-800">Editor de Sitio Web</h1>
+                      <p className="text-gray-600">Personaliza las imágenes y textos de tu página principal.</p>
+                    </div>
+                    <SiteConfigEditor />
+                  </div>
+                </div>
               </ProtectedRoute>
             }
           />

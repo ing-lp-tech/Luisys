@@ -44,6 +44,12 @@ export default function Dashboard() {
                     <p>Cargar manuales de Audaces al sistema</p>
                 </div>
 
+                <div className="dashboard-card" onClick={() => navigate('/admin/site-config')}>
+                    <Folder size={32} />
+                    <h2>Gestionar Contenido</h2>
+                    <p>Editar imágenes de inicio, logos y "Sobre Mí"</p>
+                </div>
+
                 <div className="dashboard-card">
                     <BarChart3 size={32} />
                     <h2>Estadísticas</h2>

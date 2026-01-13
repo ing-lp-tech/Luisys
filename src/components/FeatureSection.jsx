@@ -14,6 +14,15 @@ const ProductModal = ({
 }) => {
   if (!product) return null;
 
+  // Función para manejar el añadido al carrito desde el modal
+  const handleAddToCart = (item, e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    addToCart(item);
+  };
+
+  // Helper para obtener la imagen correcta
+  const getProductImage = (prod) => prod.image || prod.imagen_url || "https://via.placeholder.com/300x200?text=Sin+Imagen";
+
   // Función para renderizar el contenido específico según la categoría
   const renderProductDetails = () => {
     switch (category) {
@@ -32,13 +41,15 @@ const ProductModal = ({
                 </p>
               </div>
               <button
-                onClick={() => {
-                  addToCart({
+                onClick={(e) => {
+                  handleAddToCart({
                     ...product,
+                    id: product.id,
                     quantity: 1,
                     price: product.precio_pre_venta * dolarOficial,
-                    name: product.nombre,
-                  });
+                    name: product.nombre || product.name,
+                    image: getProductImage(product)
+                  }, e);
                   onClose();
                 }}
                 className="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 transition"
@@ -61,13 +72,15 @@ const ProductModal = ({
                 </p>
               </div>
               <button
-                onClick={() => {
-                  addToCart({
+                onClick={(e) => {
+                  handleAddToCart({
                     ...product,
+                    id: product.id,
                     quantity: 1,
                     price: product.precio_de_llegada * dolarOficial,
-                    name: product.nombre,
-                  });
+                    name: product.nombre || product.name,
+                    image: getProductImage(product)
+                  }, e);
                   onClose();
                 }}
                 className="bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 transition"
@@ -93,15 +106,18 @@ const ProductModal = ({
                   <p>${price.toLocaleString()}</p>
                 </div>
                 <button
-                  onClick={() => {
+                  onClick={(e) => {
                     const quantity = parseInt(
                       combo.replace("combo", "").replace("u", "")
                     );
-                    addToCart({
+                    handleAddToCart({
                       ...product,
+                      id: product.id,
                       quantity,
                       price,
-                    });
+                      name: product.name || product.nombre,
+                      image: getProductImage(product)
+                    }, e);
                     onClose();
                   }}
                   className="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 transition"
@@ -143,12 +159,15 @@ const ProductModal = ({
                 <p>${product.combos.basico.toLocaleString()}</p>
               </div>
               <button
-                onClick={() => {
-                  addToCart({
+                onClick={(e) => {
+                  handleAddToCart({
                     ...product,
+                    id: product.id,
                     quantity: 1,
                     price: product.combos.basico,
-                  });
+                    name: product.name || product.nombre,
+                    image: getProductImage(product)
+                  }, e);
                   onClose();
                 }}
                 className="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 transition"
@@ -163,12 +182,15 @@ const ProductModal = ({
                 <p>${product.combos.conMonitor.toLocaleString()}</p>
               </div>
               <button
-                onClick={() => {
-                  addToCart({
+                onClick={(e) => {
+                  handleAddToCart({
                     ...product,
+                    id: product.id,
                     quantity: 1,
                     price: product.combos.conMonitor,
-                  });
+                    name: product.name || product.nombre,
+                    image: getProductImage(product)
+                  }, e);
                   onClose();
                 }}
                 className="bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 transition"
@@ -217,13 +239,15 @@ const ProductModal = ({
                 </p>
               </div>
               <button
-                onClick={() => {
-                  addToCart({
+                onClick={(e) => {
+                  handleAddToCart({
                     ...product,
+                    id: product.id,
                     quantity: 1,
                     price: product.price * dolarOficial,
-                    name: product.name,
-                  });
+                    name: product.name || product.nombre,
+                    image: getProductImage(product)
+                  }, e);
                   onClose();
                 }}
                 className="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 transition"
@@ -243,13 +267,15 @@ const ProductModal = ({
                 </p>
               </div>
               <button
-                onClick={() => {
-                  addToCart({
+                onClick={(e) => {
+                  handleAddToCart({
                     ...product,
+                    id: product.id,
                     quantity: 1,
                     price: product.price * dolarOficial * 1.6,
-                    name: product.name,
-                  });
+                    name: product.name || product.nombre,
+                    image: getProductImage(product)
+                  }, e);
                   onClose();
                 }}
                 className="bg-green-600 text-white px-3 py-2 rounded hover:bg-green-700 transition"
@@ -283,13 +309,15 @@ const ProductModal = ({
                 </p>
               </div>
               <button
-                onClick={() => {
-                  addToCart({
+                onClick={(e) => {
+                  handleAddToCart({
                     ...product,
+                    id: product.id,
                     quantity: 1,
                     price: product.price * dolarOficial,
-                    name: product.name,
-                  });
+                    name: product.name || product.nombre,
+                    image: getProductImage(product)
+                  }, e);
                   onClose();
                 }}
                 className="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700 transition flex items-center gap-1"
@@ -326,7 +354,14 @@ const ProductModal = ({
                   {dolarOficial && <p className="text-sm text-gray-600">ARS: ${(product.precio_usd * dolarOficial).toLocaleString()}</p>}
                 </div>
                 <button
-                  onClick={() => addToCart({ ...product, quantity: 1, price: product.precio_usd * (dolarOficial || 1000) })}
+                  onClick={(e) => handleAddToCart({
+                    ...product,
+                    id: product.id,
+                    quantity: 1,
+                    price: product.precio_usd * (dolarOficial || 1000),
+                    name: product.nombre || product.name,
+                    image: getProductImage(product)
+                  }, e)}
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
                 >
                   <ShoppingCart size={18} />
@@ -343,7 +378,14 @@ const ProductModal = ({
                   <p className="text-xl font-bold">${parseFloat(product.precio_ars).toLocaleString()}</p>
                 </div>
                 <button
-                  onClick={() => addToCart({ ...product, quantity: 1, price: product.precio_ars })}
+                  onClick={(e) => handleAddToCart({
+                    ...product,
+                    id: product.id,
+                    quantity: 1,
+                    price: product.precio_ars,
+                    name: product.nombre || product.name,
+                    image: getProductImage(product)
+                  }, e)}
                   className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
                 >
                   <ShoppingCart size={18} />
@@ -362,12 +404,14 @@ const ProductModal = ({
                   {dolarOficial && <p className="text-sm text-gray-600">ARS: ${(product.precio_mayorista_usd * dolarOficial).toLocaleString()}</p>}
                 </div>
                 <button
-                  onClick={() => addToCart({
+                  onClick={(e) => handleAddToCart({
                     ...product,
-                    name: `${product.nombre} (Mayorista)`,
+                    id: product.id,
+                    name: `${product.nombre || product.name} (Mayorista)`,
                     quantity: product.cantidad_minima_mayorista,
-                    price: product.precio_mayorista_usd * (dolarOficial || 1000)
-                  })}
+                    price: product.precio_mayorista_usd * (dolarOficial || 1000),
+                    image: getProductImage(product)
+                  }, e)}
                   className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition flex items-center gap-2"
                 >
                   <ShoppingCart size={18} />
@@ -385,12 +429,14 @@ const ProductModal = ({
                   <p className="text-xl font-bold">${parseFloat(product.precio_mayorista_ars).toLocaleString()}</p>
                 </div>
                 <button
-                  onClick={() => addToCart({
+                  onClick={(e) => handleAddToCart({
                     ...product,
-                    name: `${product.nombre} (Mayorista)`,
+                    id: product.id,
+                    name: `${product.nombre || product.name} (Mayorista)`,
                     quantity: product.cantidad_minima_mayorista,
-                    price: product.precio_mayorista_ars
-                  })}
+                    price: product.precio_mayorista_ars,
+                    image: getProductImage(product)
+                  }, e)}
                   className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition flex items-center gap-2"
                 >
                   <ShoppingCart size={18} />
@@ -424,7 +470,7 @@ const ProductModal = ({
             <div className="md:w-1/2">
               <div className="h-64 md:h-96 overflow-hidden rounded-lg bg-gray-100 flex items-center justify-center">
                 <img
-                  src={product.image || product.imagen_url}
+                  src={getProductImage(product)}
                   alt={product.nombre || product.name}
                   className="max-h-full max-w-full object-contain"
                   onError={(e) => {
@@ -460,6 +506,24 @@ const ProductSection = ({ id, cart, addToCart }) => {
   const [categorias, setCategorias] = useState([]);
   const [supabaseError, setSupabaseError] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Estado para la notificación (Toast)
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+
+  const showNotification = (productName) => {
+    setToastMessage(`¡${productName} añadido al carrito!`);
+    setShowToast(true);
+    setTimeout(() => {
+      setShowToast(false);
+    }, 3000);
+  };
+
+  const handleAddToCartWrapper = (product, e) => {
+    if (e && e.stopPropagation) e.stopPropagation();
+    addToCart(product);
+    showNotification(product.nombre || product.name || "Producto");
+  };
 
   // Productos hardcodeados como fallback
   const allPlotters = [...plotters.inyeccion, ...plotters.corte];
@@ -577,6 +641,18 @@ const ProductSection = ({ id, cart, addToCart }) => {
 
   return (
     <section id="productos" className="py-6 px-4 md:px-8 bg-gray-50">
+      {/* Toast Notification */}
+      {showToast && (
+        <div className="fixed bottom-5 left-1/2 transform -translate-x-1/2 md:left-auto md:translate-x-0 md:right-5 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-[9999] flex items-center gap-3 animate-fade-in-up transition-all">
+          <div className="bg-white rounded-full p-1">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="text-green-600">
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+          <span className="font-semibold">{toastMessage}</span>
+        </div>
+      )}
+
       <div id={id} className="relative mt-4 min-h-[800px]">
         <div className="text-center">
           <span className="bg-blue-600 text-white rounded-full h-6 text-sm font-medium px-2 py-1 uppercase">
@@ -601,7 +677,6 @@ const ProductSection = ({ id, cart, addToCart }) => {
         </Link>
 
         {/* Filtros */}
-        {/* Filtros - Diseño Mobile con Scroll Horizontal */}
         <div className="mt-10 w-full max-w-7xl mx-auto">
           <div className="flex overflow-x-auto pb-4 gap-3 px-4 md:justify-center scrollbar-hide -mx-4 md:mx-0 snap-x">
             <button
@@ -667,7 +742,7 @@ const ProductSection = ({ id, cart, addToCart }) => {
           category={selectedCategory}
           dolarOficial={dolarOficial}
           onClose={handleCloseModal}
-          addToCart={addToCart}
+          addToCart={handleAddToCartWrapper}
         />
 
         {/* Mensaje de carga */}
@@ -767,40 +842,13 @@ const ProductSection = ({ id, cart, addToCart }) => {
                                     )}
                                   </div>
                                   <button
-                                    onClick={() => {
-                                      addToCart({
-                                        id: producto.id,
-                                        name: producto.nombre,
-                                        quantity: 1,
-                                        price: producto.precio_usd * (dolarOficial || 1000),
-                                        image: producto.imagen_url
-                                      });
-                                    }}
-                                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition flex items-center gap-2"
-                                  >
-                                    <ShoppingCart size={16} />
-                                    Añadir
-                                  </button>
-                                </div>
-                              ) : producto.precio_ars ? (
-                                <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                                  <div className="text-left">
-                                    <p className="font-semibold text-blue-900">Precio</p>
-                                    <p className="text-lg font-bold text-gray-800">
-                                      ${parseFloat(producto.precio_ars).toLocaleString()}
-                                    </p>
-                                    <p className="text-xs text-gray-500">Pesos Argentinos</p>
-                                  </div>
-                                  <button
-                                    onClick={() => {
-                                      addToCart({
-                                        id: producto.id,
-                                        name: producto.nombre,
-                                        quantity: 1,
-                                        price: producto.precio_ars,
-                                        image: producto.imagen_url
-                                      });
-                                    }}
+                                    onClick={(e) => handleAddToCartWrapper({
+                                      id: producto.id,
+                                      name: producto.nombre,
+                                      quantity: 1,
+                                      price: producto.precio_usd * (dolarOficial || 1000),
+                                      image: producto.imagen_url
+                                    }, e)}
                                     className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition flex items-center gap-2"
                                   >
                                     <ShoppingCart size={16} />
@@ -826,15 +874,13 @@ const ProductSection = ({ id, cart, addToCart }) => {
                                     )}
                                   </div>
                                   <button
-                                    onClick={() => {
-                                      addToCart({
-                                        id: producto.id,
-                                        name: `${producto.nombre} (Mayorista)`,
-                                        quantity: producto.cantidad_minima_mayorista,
-                                        price: producto.precio_mayorista_usd * (dolarOficial || 1000),
-                                        image: producto.imagen_url
-                                      });
-                                    }}
+                                    onClick={(e) => handleAddToCartWrapper({
+                                      id: producto.id,
+                                      name: `${producto.nombre} (Mayorista)`,
+                                      quantity: producto.cantidad_minima_mayorista,
+                                      price: producto.precio_mayorista_usd * (dolarOficial || 1000),
+                                      image: producto.imagen_url
+                                    }, e)}
                                     className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition flex items-center gap-2"
                                   >
                                     <ShoppingCart size={16} />
@@ -853,15 +899,13 @@ const ProductSection = ({ id, cart, addToCart }) => {
                                     <p className="text-xs text-gray-500">Pesos Argentinos</p>
                                   </div>
                                   <button
-                                    onClick={() => {
-                                      addToCart({
-                                        id: producto.id,
-                                        name: `${producto.nombre} (Mayorista)`,
-                                        quantity: producto.cantidad_minima_mayorista,
-                                        price: producto.precio_mayorista_ars,
-                                        image: producto.imagen_url
-                                      });
-                                    }}
+                                    onClick={(e) => handleAddToCartWrapper({
+                                      id: producto.id,
+                                      name: `${producto.nombre} (Mayorista)`,
+                                      quantity: producto.cantidad_minima_mayorista,
+                                      price: producto.precio_mayorista_ars,
+                                      image: producto.imagen_url
+                                    }, e)}
                                     className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition flex items-center gap-2"
                                   >
                                     <ShoppingCart size={16} />
@@ -940,15 +984,13 @@ const ProductSection = ({ id, cart, addToCart }) => {
                                 )}
                               </div>
                               <button
-                                onClick={() => {
-                                  addToCart({
-                                    id: producto.id,
-                                    name: producto.nombre,
-                                    quantity: 1,
-                                    price: producto.precio_usd * (dolarOficial || 1000),
-                                    image: producto.imagen_url
-                                  });
-                                }}
+                                onClick={(e) => handleAddToCartWrapper({
+                                  id: producto.id,
+                                  name: producto.nombre,
+                                  quantity: 1,
+                                  price: producto.precio_usd * (dolarOficial || 1000),
+                                  image: producto.imagen_url
+                                }, e)}
                                 className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition flex items-center gap-2"
                               >
                                 <ShoppingCart size={16} />
@@ -965,15 +1007,13 @@ const ProductSection = ({ id, cart, addToCart }) => {
                                 <p className="text-xs text-gray-500">Pesos Argentinos</p>
                               </div>
                               <button
-                                onClick={() => {
-                                  addToCart({
-                                    id: producto.id,
-                                    name: producto.nombre,
-                                    quantity: 1,
-                                    price: producto.precio_ars,
-                                    image: producto.imagen_url
-                                  });
-                                }}
+                                onClick={(e) => handleAddToCartWrapper({
+                                  id: producto.id,
+                                  name: producto.nombre,
+                                  quantity: 1,
+                                  price: producto.precio_ars,
+                                  image: producto.imagen_url
+                                }, e)}
                                 className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition flex items-center gap-2"
                               >
                                 <ShoppingCart size={16} />
@@ -999,15 +1039,13 @@ const ProductSection = ({ id, cart, addToCart }) => {
                                 )}
                               </div>
                               <button
-                                onClick={() => {
-                                  addToCart({
-                                    id: producto.id,
-                                    name: `${producto.nombre} (Mayorista)`,
-                                    quantity: producto.cantidad_minima_mayorista,
-                                    price: producto.precio_mayorista_usd * (dolarOficial || 1000),
-                                    image: producto.imagen_url
-                                  });
-                                }}
+                                onClick={(e) => handleAddToCartWrapper({
+                                  id: producto.id,
+                                  name: `${producto.nombre} (Mayorista)`,
+                                  quantity: producto.cantidad_minima_mayorista,
+                                  price: producto.precio_mayorista_usd * (dolarOficial || 1000),
+                                  image: producto.imagen_url
+                                }, e)}
                                 className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition flex items-center gap-2"
                               >
                                 <ShoppingCart size={16} />
@@ -1026,15 +1064,13 @@ const ProductSection = ({ id, cart, addToCart }) => {
                                 <p className="text-xs text-gray-500">Pesos Argentinos</p>
                               </div>
                               <button
-                                onClick={() => {
-                                  addToCart({
-                                    id: producto.id,
-                                    name: `${producto.nombre} (Mayorista)`,
-                                    quantity: producto.cantidad_minima_mayorista,
-                                    price: producto.precio_mayorista_ars,
-                                    image: producto.imagen_url
-                                  });
-                                }}
+                                onClick={(e) => handleAddToCartWrapper({
+                                  id: producto.id,
+                                  name: `${producto.nombre} (Mayorista)`,
+                                  quantity: producto.cantidad_minima_mayorista,
+                                  price: producto.precio_mayorista_ars,
+                                  image: producto.imagen_url
+                                }, e)}
                                 className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition flex items-center gap-2"
                               >
                                 <ShoppingCart size={16} />
@@ -1120,13 +1156,12 @@ const ProductSection = ({ id, cart, addToCart }) => {
                               </p>
                               <button
                                 onClick={(e) => {
-                                  e.stopPropagation();
-                                  addToCart({
+                                  handleAddToCartWrapper({
                                     ...plotter,
                                     quantity: 1,
                                     price: plotter.precio_de_llegada * dolarOficial,
                                     name: plotter.nombre,
-                                  });
+                                  }, e);
                                 }}
                                 className="bg-green-600 text-white text-xs px-3 py-1 rounded hover:bg-green-700 transition"
                               >
@@ -1143,113 +1178,6 @@ const ProductSection = ({ id, cart, addToCart }) => {
             )}
           </>
         )}
-
-        {/* Sección de Papeles - FALLBACK
-        {(activeFilter === "all" || activeFilter === "papers") && (
-          <div className="mt-16 text-center">
-            <h3 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-8">
-              <span className="border-b-4 border-blue-500 pb-2">
-                Nuestros Papeles
-              </span>
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-4">
-              {products.map((product) => (
-                <div
-                  key={product.id}
-                  className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition cursor-pointer"
-                  onClick={() => handleProductClick(product, "papers")}
-                >
-                  <div className="h-48 overflow-hidden relative">
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="w-full h-full object-cover"
-                    />
-                    <div className="absolute top-2 right-2 bg-black bg-opacity-50 text-white p-1 rounded">
-                      <ZoomIn size={16} />
-                    </div>
-                  </div>
-
-                  <div className="p-6 flex flex-col justify-between h-full">
-                    <div>
-                      <div className="flex justify-between items-start">
-                        <h3 className="text-xl font-bold text-gray-900">
-                          {product.name}
-                        </h3>
-                        <span className="bg-blue-100 text-blue-800 text-sm font-semibold px-2.5 py-0.5 rounded">
-                          {product.category}
-                        </span>
-                      </div>
-
-                      <p className="mt-2 text-gray-600 line-clamp-2">
-                        {product.description}
-                      </p>
-
-                      <div className="mt-4 text-sm text-gray-700 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <p>
-                            Combo 5u: ${product.combos.combo5u.toLocaleString()}
-                          </p>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              addToCart({
-                                ...product,
-                                quantity: 5,
-                                price: product.combos.combo5u,
-                              });
-                            }}
-                            className="bg-blue-600 text-white text-xs px-3 py-1 rounded hover:bg-blue-700"
-                          >
-                            Añadir
-                          </button>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <p>
-                            Combo 15u: $
-                            {product.combos.combo15u.toLocaleString()}
-                          </p>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              addToCart({
-                                ...product,
-                                quantity: 15,
-                                price: product.combos.combo15u,
-                              });
-                            }}
-                            className="bg-blue-600 text-white text-xs px-3 py-1 rounded hover:bg-blue-700"
-                          >
-                            Añadir
-                          </button>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <p>
-                            Combo 30u: $
-                            {product.combos.combo30u.toLocaleString()}
-                          </p>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              addToCart({
-                                ...product,
-                                quantity: 30,
-                                price: product.combos.combo30u,
-                              });
-                            }}
-                            className="bg-blue-600 text-white text-xs px-3 py-1 rounded hover:bg-blue-700"
-                          >
-                            Añadir
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )} */}
 
         {/* Sección de características (siempre visible) */}
         <div className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-8">

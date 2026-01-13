@@ -1,8 +1,9 @@
 import { motion } from "framer-motion";
 import plotter2 from "../assets/plotter2.jpg";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react"; // Importar useEffect
 import avatarLuisPatty from "../assets/avatarLuisPattyJpg.jpg";
 import llegoIngeJPG from "../assets/llegoIngepng.png";
+import { siteConfigService } from "../services/siteConfigService"; // Importar servicio
 
 const HeroSection = ({ id, dolarOficial }) => {
   const phoneNumber = "5491162020911";
@@ -15,6 +16,19 @@ const HeroSection = ({ id, dolarOficial }) => {
   const [form, setForm] = useState({ name: "", description: "", price: "" });
   const [image, setImage] = useState(null);
   const [message, setMessage] = useState(""); // estado para mostrar mensaje de éxito/error
+
+  // Estados para imágenes dinámicas del Hero
+  const [heroLogoUrl, setHeroLogoUrl] = useState(llegoIngeJPG);
+  const [heroMainImageUrl, setHeroMainImageUrl] = useState(plotter2);
+
+  useEffect(() => {
+    const fetchHeroImages = async () => {
+      const config = await siteConfigService.getAllConfigs();
+      if (config.hero_logo_url) setHeroLogoUrl(config.hero_logo_url);
+      if (config.hero_main_image_url) setHeroMainImageUrl(config.hero_main_image_url);
+    };
+    fetchHeroImages();
+  }, []);
 
   return (
     <>
@@ -32,6 +46,7 @@ const HeroSection = ({ id, dolarOficial }) => {
               repeat: Infinity,
               ease: "easeInOut",
             }}
+            style={{ zIndex: 10 }}
           >
             <p className="text-base sm:text-xl font-semibold text-gray-800 bg-white/50 backdrop-blur-sm p-2 rounded-lg border border-gray-100 shadow-sm inline-block">
               💵 Cotización dólar oficial{" "}
@@ -49,8 +64,8 @@ const HeroSection = ({ id, dolarOficial }) => {
                 <div className="items-center justify-between hidden md:block">
                   <img
                     className="w-full max-w-[200px] mb-4"
-                    src={llegoIngeJPG}
-                    alt="Plotter industrial en funcionamiento"
+                    src={heroLogoUrl} // Dinámico
+                    alt="Logo Hero"
                   />
                 </div>
                 <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 mb-4 sm:mb-6 leading-tight">
@@ -65,14 +80,11 @@ const HeroSection = ({ id, dolarOficial }) => {
                   especializado para tizado.
                 </p>
 
+                {/* Botones ocultos a pedido del usuario (12/1/2026)
                 <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
-                  <button className="bg-blue-600 text-white hover:bg-blue-700 font-bold py-3 px-8 rounded-full shadow-lg hover:shadow-xl transition duration-300 transform hover:-translate-y-1">
-                    <a href={whatsappUrl}>Contactar Ahora</a>
-                  </button>
-                  <button className="border-2 border-blue-600 text-blue-600 hover:bg-blue-50 font-bold py-3 px-8 rounded-full transition duration-300">
-                    <a href="#features">Ver Productos</a>
-                  </button>
+                  ... (código comentado sin cambios)
                 </div>
+                */}
 
                 <div className="mt-8 flex items-center justify-center md:justify-start space-x-4">
                   <div className="flex -space-x-2">
@@ -86,7 +98,7 @@ const HeroSection = ({ id, dolarOficial }) => {
                 <div className="relative rounded-2xl overflow-hidden shadow-2xl border-4 border-white">
                   <img
                     className="w-full object-cover transform hover:scale-105 transition duration-500"
-                    src={plotter2}
+                    src={heroMainImageUrl} // Dinámico
                     alt="Plotter industrial en funcionamiento"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
@@ -95,7 +107,7 @@ const HeroSection = ({ id, dolarOficial }) => {
                 <div className="md:hidden mt-4 flex justify-center">
                   <img
                     className="w-32 object-contain"
-                    src={llegoIngeJPG}
+                    src={heroLogoUrl} // Dinámico
                     alt="Logo"
                   />
                 </div>
