@@ -45,7 +45,10 @@ export default function ChatVendedor() {
             const response = await fetch(`${baseUrl}/chat-vendedor`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ question: input }),
+                body: JSON.stringify({
+                    question: input,
+                    messages: [...messages, userMessage] // Enviar historial completo
+                }),
             });
 
             if (!response.ok) {

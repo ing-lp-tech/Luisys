@@ -217,13 +217,17 @@ app.post('/chat', async (req, res) => {
 // Endpoint para chatbot vendedor (especializado en ventas)
 app.post('/chat-vendedor', async (req, res) => {
     try {
-        const { question } = req.body;
+        const { question, messages } = req.body;
 
-        if (!question) {
-            return res.status(400).json({ error: 'No question provided' });
+        // Soporte para ambos formatos: con historial o solo pregunta
+        const userQuestion = question || (messages && messages[messages.length - 1]?.content);
+
+        if (!userQuestion) {
+            return res.status(400).json({ error: 'No question or messages provided' });
         }
 
-        console.log('Pregunta de venta:', question);
+        console.log('Pregunta de venta:', userQuestion);
+        console.log('Historial de mensajes:', messages ? messages.length : 0);
 
         // Contexto de productos y precios
         const productContext = `
@@ -436,20 +440,36 @@ Responde con el número que prefieras"
 
 NO así: "Opciones: 1. Opción 1 2. Opción 2 3. Opción 3" (sin líneas en blanco)`;
 
+        // Generar respuesta con OpenAI usando historial completo
+        const chatMessages = [
+            {
+                role: 'system',
+                content: salesSystemPrompt
+            }
+        ];
 
-        // Generar respuesta con OpenAI
+        // Si hay historial de mensajes, usarlo; sino, solo la pregunta actual
+        if (messages && Array.isArray(messages)) {
+            // Agregar todo el historial (excluyendo el mensaje inicial del sistema si existe)
+            messages.forEach(msg => {
+                if (msg.role === 'user' || msg.role === 'assistant') {
+                    chatMessages.push({
+                        role: msg.role,
+                        content: msg.content
+                    });
+                }
+            });
+        } else {
+            // Formato antiguo: solo la pregunta
+            chatMessages.push({
+                role: 'user',
+                content: userQuestion
+            });
+        }
+
         const completion = await openai.chat.completions.create({
             model: 'gpt-4',
-            messages: [
-                {
-                    role: 'system',
-                    content: salesSystemPrompt
-                },
-                {
-                    role: 'user',
-                    content: question
-                }
-            ],
+            messages: chatMessages,
             temperature: 0.8, // Más creativo para ventas
             max_tokens: 600
         });
