@@ -104,6 +104,46 @@ export default function ChatVendedor() {
         }
     };
 
+    // Función para convertir links markdown [texto](url) a HTML clickeable
+    const renderMessageWithLinks = (text) => {
+        // Regex para detectar [texto](url)
+        const linkRegex = /\[([^\]]+)\]\(([^\)]+)\)/g;
+        const parts = [];
+        let lastIndex = 0;
+        let match;
+
+        while ((match = linkRegex.exec(text)) !== null) {
+            // Agregar texto antes del link
+            if (match.index > lastIndex) {
+                parts.push(text.substring(lastIndex, match.index));
+            }
+
+            // Agregar el link como elemento clickeable
+            const linkText = match[1];
+            const url = match[2];
+            parts.push(
+                <a
+                    key={match.index}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: '#4A90E2', textDecoration: 'underline', fontWeight: 'bold' }}
+                >
+                    {linkText}
+                </a>
+            );
+
+            lastIndex = linkRegex.lastIndex;
+        }
+
+        // Agregar texto restante
+        if (lastIndex < text.length) {
+            parts.push(text.substring(lastIndex));
+        }
+
+        return parts.length > 0 ? parts : text;
+    };
+
     return (
         <>
             {/* Widget Button */}
@@ -136,7 +176,9 @@ export default function ChatVendedor() {
                         {messages.map((msg, idx) => (
                             <div key={idx} className={`widget-message ${msg.role}`}>
                                 <div className="widget-message-content">
-                                    <p style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</p>
+                                    <p style={{ whiteSpace: 'pre-wrap' }}>
+                                        {renderMessageWithLinks(msg.content)}
+                                    </p>
                                 </div>
                             </div>
                         ))}
