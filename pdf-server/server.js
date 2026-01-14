@@ -468,10 +468,10 @@ NO así: "Opciones: 1. Opción 1 2. Opción 2 3. Opción 3" (sin líneas en blan
         }
 
         const completion = await openai.chat.completions.create({
-            model: 'gpt-4',
+            model: 'gpt-4o-mini', // ← 20x más barato que GPT-3.5-turbo
             messages: chatMessages,
-            temperature: 0.8, // Más creativo para ventas
-            max_tokens: 600
+            temperature: 0.7, // Ligeramente reducido para respuestas más consistentes
+            max_tokens: 150 // ← Reducido de 600 a 150 (respuestas concisas)
         });
 
         const answer = completion.choices[0].message.content;
