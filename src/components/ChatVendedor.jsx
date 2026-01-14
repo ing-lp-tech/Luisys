@@ -1,52 +1,78 @@
 import { useState } from "react";
-import { Send, FileText, Loader2, Minimize2 } from "lucide-react";
-import "./ChatAudacesWidget.css"; // Reutilizamos los mismos estilos
+import { Send, Loader2, Minimize2 } from "lucide-react";
+import "./ChatAudacesWidget.css";
 import avatarLuisPatty from "../assets/avatarLuisPatty.jpg";
+import CHATBOT_RULES from "../lib/chatbot_rules.js";
 
 export default function ChatVendedor() {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState([
         {
             role: "assistant",
-            content: "¡Hola! 👋 Soy IngeBot, tu asesor especializado. ¿Estás buscando digitalizar tu proceso de tizada y dejar atrás el cartón? Cuéntame sobre tu taller y te ayudo a encontrar la solución perfecta.",
+            content: `¡Hola! 👋 Soy **IngeBot** de Electro Luisys.\n\n¿En qué puedo ayudarte hoy?\n\n1. 🛒 **Comprar Productos** (Plotters, Papel)\n\n2. 🔧 **Asistencia Técnica**\n\n3. 👤 **Hablar con el Dueño**\n\nResponde con el número (1, 2 o 3)`,
         },
     ]);
     const [input, setInput] = useState("");
     const [loading, setLoading] = useState(false);
+    const [conversationContext, setConversationContext] = useState({ lastMenu: 'main' });
 
     const sendMessage = async () => {
         if (!input.trim()) return;
 
         const userMessage = { role: "user", content: input };
         setMessages((prev) => [...prev, userMessage]);
+        const userInput = input;
         setInput("");
         setLoading(true);
 
         try {
-            // 1. Obtener y Sanitizar URL
+            // ========== PASO 1: Intentar responder con REGLAS (SIN IA) ==========
+            const ruleResponse = CHATBOT_RULES.tryRespond(userInput, conversationContext);
+
+            // Si las reglas pueden responder → NO llamamos a OpenAI (GRATIS ✅)
+            if (!ruleResponse.useAI) {
+                console.log('✅ Respondido con REGLAS (sin IA) - Costo: $0');
+
+                const assistantMessage = {
+                    role: "assistant",
+                    content: ruleResponse.response,
+                };
+
+                setMessages((prev) => [...prev, assistantMessage]);
+
+                // Actualizar contexto de conversación
+                if (ruleResponse.context) {
+                    setConversationContext((prev) => ({ ...prev, ...ruleResponse.context }));
+                }
+
+                setLoading(false);
+                return; // ← TERMINA AQUÍ, no llama al backend
+            }
+
+            // ========== PASO 2: SI NO PUEDE RESPONDER CON REGLAS → Llamar OpenAI ==========
+            console.log('💸 Llamando a OpenAI API - Razón:', ruleResponse.reason);
+
             let baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
-            // Corrección de errores comunes en URL
+            // Sanitizar URL
             baseUrl = baseUrl.trim();
             if (baseUrl.startsWith('https:/') && !baseUrl.startsWith('https://')) {
                 baseUrl = baseUrl.replace('https:/', 'https://');
             }
             if (!baseUrl.startsWith('http')) {
-                // Si el usuario olvidó el protocolo
                 baseUrl = `https://${baseUrl}`;
             }
-            // Quitar barra final si existe
             if (baseUrl.endsWith('/')) {
                 baseUrl = baseUrl.slice(0, -1);
             }
 
-            console.log('Sending request to:', `${baseUrl}/chat-vendedor`);
+            console.log('Sending AI request to:', `${baseUrl}/chat-vendedor`);
 
             const response = await fetch(`${baseUrl}/chat-vendedor`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    question: input,
+                    question: userInput,
                     messages: [...messages, userMessage] // Enviar historial completo
                 }),
             });
