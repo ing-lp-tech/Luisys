@@ -1,6 +1,6 @@
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Package, FileText, BarChart3, Folder } from 'lucide-react';
+import { LogOut, Package, FileText, BarChart3, Folder, Users } from 'lucide-react';
 import './Dashboard.css';
 
 export default function Dashboard() {
@@ -48,6 +48,12 @@ export default function Dashboard() {
                     <Folder size={32} />
                     <h2>Gestionar Contenido</h2>
                     <p>Editar imágenes de inicio, logos y "Sobre Mí"</p>
+                </div>
+
+                <div className="dashboard-card" onClick={() => navigate('/admin/leads')}>
+                    <Users size={32} />
+                    <h2>Clientes Potenciales</h2>
+                    <p>Ver contactos capturados (CRM)</p>
                 </div>
 
                 <div className="dashboard-card">

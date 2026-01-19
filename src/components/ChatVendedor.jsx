@@ -2,14 +2,15 @@ import { useState } from "react";
 import { Send, Loader2, Minimize2 } from "lucide-react";
 import "./ChatAudacesWidget.css";
 import avatarLuisPatty from "../assets/avatarLuisPatty.jpg";
-import CHATBOT_RULES from "../lib/chatbot_rules.js";
+import { supabase } from "../lib/supabaseClient";
 
 export default function ChatVendedor() {
     const [isOpen, setIsOpen] = useState(false);
+    const [leadStep, setLeadStep] = useState('initial'); // 'initial', 'capturing_data', 'completed'
     const [messages, setMessages] = useState([
         {
             role: "assistant",
-            content: `¡Hola! 👋 Soy **IngeBot** de Electro Luisys.\n\n¿En qué puedo ayudarte hoy?\n\n1. 🛒 **Comprar Productos** (Plotters, Papel)\n\n2. 🔧 **Asistencia Técnica**\n\n3. 👤 **Hablar con el Dueño**\n\nResponde con el número (1, 2 o 3)`,
+            content: `👋 ¡Hola! Bienvenido a Electro Luisys.\n\nPara brindarte una mejor atención, por favor elige una opción:\n\n1. 📝 **Dejar mis datos** (Nombre y WhatsApp)\n\n2. ⏩ **Continuar sin datos**\n\nResponde con **1** o **2**.`,
         },
     ]);
     const [input, setInput] = useState("");
@@ -25,33 +26,89 @@ export default function ChatVendedor() {
         setInput("");
         setLoading(true);
 
-        try {
-            // ========== PASO 1: Intentar responder con REGLAS (SIN IA) ==========
-            const ruleResponse = CHATBOT_RULES.tryRespond(userInput, conversationContext);
+        // --- Lead Capture Logic ---
+        if (leadStep === 'initial') {
+            const choice = userInput.trim();
 
-            // Si las reglas pueden responder → NO llamamos a OpenAI (GRATIS ✅)
-            if (!ruleResponse.useAI) {
-                console.log('✅ Respondido con REGLAS (sin IA) - Costo: $0');
-
-                const assistantMessage = {
+            if (choice === '1') {
+                setLeadStep('capturing_data');
+                setMessages((prev) => [...prev, {
                     role: "assistant",
-                    content: ruleResponse.response,
-                };
-
-                setMessages((prev) => [...prev, assistantMessage]);
-
-                // Actualizar contexto de conversación
-                if (ruleResponse.context) {
-                    setConversationContext((prev) => ({ ...prev, ...ruleResponse.context }));
-                }
-
-                setLoading(false);
-                return; // ← TERMINA AQUÍ, no llama al backend
+                    content: `Por favor, escribe tu **Nombre** y **Número de WhatsApp**:`
+                }]);
+            } else if (choice === '2') {
+                setLeadStep('completed');
+                setMessages((prev) => [...prev, {
+                    role: "assistant",
+                    content: `¡Entendido! 👌\n\nSoy **IngeBot** de Electro Luisys. ¿En qué puedo ayudarte hoy?\n\n1. 🛒 **Comprar Productos** (Plotters, Papel)\n\n2. 🔧 **Asistencia Técnica**\n\n3. 👤 **Hablar con el Dueño**\n\nResponde con el número (1, 2 o 3)`
+                }]);
+            } else {
+                setMessages((prev) => [...prev, {
+                    role: "assistant",
+                    content: `Por favor, responde con **1** (Dejar datos) o **2** (Continuar).`
+                }]);
             }
 
-            // ========== PASO 2: SI NO PUEDE RESPONDER CON REGLAS → Llamar OpenAI ==========
-            console.log('💸 Llamando a OpenAI API - Razón:', ruleResponse.reason);
+            setLoading(false);
+            return;
+        }
 
+        if (leadStep === 'capturing_data') {
+            try {
+                // Attempt to parse 'Name' and 'Phone' from input
+                const phoneRegex = /[\d\s\-\+\(\)]{7,}/;
+                const phoneMatch = userInput.match(phoneRegex);
+
+                let phone = '';
+                let name = userInput;
+
+                if (phoneMatch) {
+                    phone = phoneMatch[0].trim();
+                    name = userInput.replace(phoneMatch[0], '').trim().replace(/^[-,]|[-,]$/g, '').trim();
+                }
+
+                if (!name && phone) name = "Usuario (Solo Teléfono)";
+
+                // Save to Supabase
+                const { error } = await supabase.from('leads').insert([{
+                    nombre: name || userInput,
+                    telefono: phone || null,
+                    origen: 'chatbot',
+                    created_at: new Date()
+                }]);
+
+                if (error) {
+                    console.error("Error saving lead to Supabase:", error);
+                    setMessages((prev) => [...prev, {
+                        role: "assistant", // Error message
+                        content: `Lo siento, hubo un error al conectar con la base de datos (${error.message}). Por favor ingresa la opción 2 para continuar.`
+                    }]);
+                    setLoading(false);
+                    return;
+                }
+                setLeadStep('completed');
+                setMessages((prev) => [...prev, {
+                    role: "assistant",
+                    content: `¡Gracias! Datos guardados. ✅\n\nSoy **IngeBot** de Electro Luisys. ¿En qué puedo ayudarte hoy?\n\n1. 🛒 **Comprar Productos** (Plotters, Papel)\n\n2. 🔧 **Asistencia Técnica**\n\n3. 👤 **Hablar con el Dueño**\n\nResponde con el número (1, 2 o 3)`
+                }]);
+
+            } catch (err) {
+                console.error("Error lead capture:", err);
+                setLeadStep('completed');
+                setMessages((prev) => [...prev, {
+                    role: "assistant",
+                    content: `Continuemos... \n\nSoy **IngeBot** de Electro Luisys. ¿En qué puedo ayudarte hoy?\n\n1. 🛒 **Comprar Productos** (Plotters, Papel)\n\n2. 🔧 **Asistencia Técnica**\n\n3. 👤 **Hablar con el Dueño**\n\nResponde con el número (1, 2 o 3)`
+                }]);
+            } finally {
+                setLoading(false);
+            }
+            return;
+        }
+
+        // --- Standard Chat Logic ---
+
+        try {
+            // ========== Paso Directo: Llamar OpenAI ==========
             let baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
             // Sanitizar URL

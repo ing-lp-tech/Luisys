@@ -1,8 +1,11 @@
 ﻿import { useEffect, useState } from "react";
 import { products, plotters, pcs, kitCameras, imouCams } from "../constants";
-import { ShoppingCart, Filter, X, ZoomIn } from "lucide-react";
+import { ShoppingCart, Filter, X, ZoomIn, ChevronLeft, ChevronRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "../lib/supabaseClient";
+import CartDrawer from "./CartDrawer";
+import ProductCardSupabase from "./ProductCardSupabase"; // Imporar componente
+
 
 // Componente Modal para visualización ampliada
 const ProductModal = ({
@@ -20,8 +23,34 @@ const ProductModal = ({
     addToCart(item);
   };
 
-  // Helper para obtener la imagen correcta
+  // Helper para obtener la imagen correcta o array de galeria
   const getProductImage = (prod) => prod.image || prod.imagen_url || "https://via.placeholder.com/300x200?text=Sin+Imagen";
+
+  // Estado para el carrusel
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // Determinar si hay galería válida
+  const hasGallery = product.galeria && Array.isArray(product.galeria) && product.galeria.length > 0;
+
+  // Array final de imágenes a mostrar
+  const displayImages = hasGallery
+    ? product.galeria
+    : [getProductImage(product)]; // Fallback a imagen única si no hay galería
+
+  const handleNextImage = (e) => {
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev + 1) % displayImages.length);
+  };
+
+  const handlePrevImage = (e) => {
+    e.stopPropagation();
+    setCurrentImageIndex((prev) => (prev - 1 + displayImages.length) % displayImages.length);
+  };
+
+  // Reiniciar índice al cambiar producto
+  useEffect(() => {
+    setCurrentImageIndex(0);
+  }, [product]);
 
   // Función para renderizar el contenido específico según la categoría
   const renderProductDetails = () => {
@@ -468,18 +497,68 @@ const ProductModal = ({
         <div className="p-6">
           <div className="flex flex-col md:flex-row gap-6">
             <div className="md:w-1/2">
-              <div className="h-64 md:h-96 overflow-hidden rounded-lg bg-gray-100 flex items-center justify-center">
+              <div className="h-64 md:h-96 overflow-hidden rounded-lg bg-gray-100 relative group flex items-center justify-center">
+
+                {/* Imagen Principal */}
                 <img
-                  src={getProductImage(product)}
-                  alt={product.nombre || product.name}
-                  className="max-h-full max-w-full object-contain"
+                  src={displayImages[currentImageIndex]}
+                  alt={`${product.nombre || product.name} - Vista ${currentImageIndex + 1}`}
+                  className="max-h-full max-w-full object-contain transition-opacity duration-300"
                   onError={(e) => {
                     e.target.onerror = null;
-                    e.target.src =
-                      "https://via.placeholder.com/500x300?text=Imagen+no+disponible";
+                    e.target.src = "https://via.placeholder.com/500x300?text=Imagen+no+disponible";
                   }}
                 />
+
+                {/* Controles del Carrusel (Solo si hay más de 1 imagen) */}
+                {displayImages.length > 1 && (
+                  <>
+                    <button
+                      onClick={handlePrevImage}
+                      className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition opacity-0 group-hover:opacity-100"
+                    >
+                      <ChevronLeft size={24} />
+                    </button>
+                    <button
+                      onClick={handleNextImage}
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition opacity-0 group-hover:opacity-100"
+                    >
+                      <ChevronRight size={24} />
+                    </button>
+
+                    {/* Indicadores (dots) */}
+                    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
+                      {displayImages.map((_, idx) => (
+                        <button
+                          key={idx}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCurrentImageIndex(idx);
+                          }}
+                          className={`w-2 h-2 rounded-full transition-all ${currentImageIndex === idx ? "bg-white w-4" : "bg-white/50 hover:bg-white/80"
+                            }`}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
               </div>
+
+              {/* Tiras de miniaturas si hay carrusel */}
+              {displayImages.length > 1 && (
+                <div className="flex gap-2 mt-4 overflow-x-auto pb-2 scrollbar-thin">
+                  {displayImages.map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setCurrentImageIndex(idx)}
+                      className={`flex-shrink-0 w-20 h-20 rounded-md overflow-hidden border-2 transition ${currentImageIndex === idx ? "border-blue-600 ring-2 ring-blue-100" : "border-gray-200 hover:border-gray-300"
+                        }`}
+                    >
+                      <img src={img} alt={`Thumb ${idx}`} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="md:w-1/2">
@@ -511,6 +590,9 @@ const ProductSection = ({ id, cart, addToCart }) => {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
 
+  // Estado para el CartDrawer
+  const [showCartDrawer, setShowCartDrawer] = useState(false);
+
   const showNotification = (productName) => {
     setToastMessage(`¡${productName} añadido al carrito!`);
     setShowToast(true);
@@ -523,6 +605,8 @@ const ProductSection = ({ id, cart, addToCart }) => {
     if (e && e.stopPropagation) e.stopPropagation();
     addToCart(product);
     showNotification(product.nombre || product.name || "Producto");
+    // Abrir el CartDrawer
+    setShowCartDrawer(true);
   };
 
   // Productos hardcodeados como fallback
@@ -793,128 +877,13 @@ const ProductSection = ({ id, cart, addToCart }) => {
                     {/* Grid de productos */}
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-4">
                       {productosCategoria.map((producto) => (
-                        <div
-                          key={producto.id}
-                          className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition cursor-pointer"
-                          onClick={() => handleProductClick(producto, 'generic')}
-                        >
-                          <div className="h-48 overflow-hidden">
-                            <img
-                              src={producto.imagen_url || "https://via.placeholder.com/300x200?text=Sin+Imagen"}
-                              alt={producto.nombre}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.target.onerror = null;
-                                e.target.src = "https://via.placeholder.com/300x200?text=Sin+Imagen";
-                              }}
-                            />
-                          </div>
-
-                          <div className="p-6">
-                            <div className="flex justify-between items-start mb-2">
-                              <h3 className="text-xl font-bold text-gray-900">
-                                {producto.nombre}
-                              </h3>
-                              <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">
-                                {producto.categoria}
-                              </span>
-                            </div>
-
-                            {producto.descripcion && (
-                              <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                                {producto.descripcion}
-                              </p>
-                            )}
-
-                            <div className="space-y-2">
-                              {/* Lógica de Precio Regular: USD vs ARS */}
-                              {producto.precio_usd ? (
-                                <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                                  <div className="text-left">
-                                    <p className="font-semibold text-blue-900">Precio USD</p>
-                                    <p className="text-sm text-gray-600">
-                                      USD ${producto.precio_usd.toLocaleString()}
-                                    </p>
-                                    {dolarOficial && (
-                                      <p className="text-xs text-gray-500">
-                                        ARS ${(producto.precio_usd * dolarOficial).toLocaleString()}
-                                      </p>
-                                    )}
-                                  </div>
-                                  <button
-                                    onClick={(e) => handleAddToCartWrapper({
-                                      id: producto.id,
-                                      name: producto.nombre,
-                                      quantity: 1,
-                                      price: producto.precio_usd * (dolarOficial || 1000),
-                                      image: producto.imagen_url
-                                    }, e)}
-                                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition flex items-center gap-2"
-                                  >
-                                    <ShoppingCart size={16} />
-                                    Añadir
-                                  </button>
-                                </div>
-                              ) : null}
-
-                              {/* Lógica de Precio Mayorista: USD vs ARS */}
-                              {producto.precio_mayorista_usd ? (
-                                <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                                  <div className="text-left">
-                                    <p className="font-semibold text-green-900">
-                                      Mayorista ({producto.cantidad_minima_mayorista}+ u)
-                                    </p>
-                                    <p className="text-sm text-gray-600">
-                                      USD ${producto.precio_mayorista_usd.toLocaleString()}
-                                    </p>
-                                    {dolarOficial && (
-                                      <p className="text-xs text-gray-500">
-                                        ARS ${(producto.precio_mayorista_usd * dolarOficial).toLocaleString()}
-                                      </p>
-                                    )}
-                                  </div>
-                                  <button
-                                    onClick={(e) => handleAddToCartWrapper({
-                                      id: producto.id,
-                                      name: `${producto.nombre} (Mayorista)`,
-                                      quantity: producto.cantidad_minima_mayorista,
-                                      price: producto.precio_mayorista_usd * (dolarOficial || 1000),
-                                      image: producto.imagen_url
-                                    }, e)}
-                                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition flex items-center gap-2"
-                                  >
-                                    <ShoppingCart size={16} />
-                                    Añadir
-                                  </button>
-                                </div>
-                              ) : producto.precio_mayorista_ars ? (
-                                <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                                  <div className="text-left">
-                                    <p className="font-semibold text-green-900">
-                                      Mayorista ({producto.cantidad_minima_mayorista}+ u)
-                                    </p>
-                                    <p className="text-lg font-bold text-gray-800">
-                                      ${parseFloat(producto.precio_mayorista_ars).toLocaleString()}
-                                    </p>
-                                    <p className="text-xs text-gray-500">Pesos Argentinos</p>
-                                  </div>
-                                  <button
-                                    onClick={(e) => handleAddToCartWrapper({
-                                      id: producto.id,
-                                      name: `${producto.nombre} (Mayorista)`,
-                                      quantity: producto.cantidad_minima_mayorista,
-                                      price: producto.precio_mayorista_ars,
-                                      image: producto.imagen_url
-                                    }, e)}
-                                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition flex items-center gap-2"
-                                  >
-                                    <ShoppingCart size={16} />
-                                    Añadir
-                                  </button>
-                                </div>
-                              ) : null}
-                            </div>
-                          </div>
+                        <div key={producto.id} className="h-full">
+                          <ProductCardSupabase
+                            product={producto}
+                            dolarOficial={dolarOficial}
+                            onAddToCart={handleAddToCartWrapper}
+                            onClick={(prod) => handleProductClick(prod, categoria.nombre)}
+                          />
                         </div>
                       ))}
                     </div>
@@ -936,150 +905,13 @@ const ProductSection = ({ id, cart, addToCart }) => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 px-4">
                   {getFilteredSupabaseProducts().map((producto) => (
-                    <div
-                      key={producto.id}
-                      className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition"
-                    >
-                      <div className="h-48 overflow-hidden">
-                        <img
-                          src={producto.imagen_url || "https://via.placeholder.com/300x200?text=Sin+Imagen"}
-                          alt={producto.nombre}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = "https://via.placeholder.com/300x200?text=Sin+Imagen";
-                          }}
-                        />
-                      </div>
-
-                      <div className="p-6">
-                        <div className="flex justify-between items-start mb-2">
-                          <h3 className="text-xl font-bold text-gray-900">
-                            {producto.nombre}
-                          </h3>
-                          <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">
-                            {producto.categoria}
-                          </span>
-                        </div>
-
-                        {producto.descripcion && (
-                          <p className="text-gray-600 text-sm mb-4 line-clamp-2">
-                            {producto.descripcion}
-                          </p>
-                        )}
-
-                        <div className="space-y-2">
-                          {/* Lógica de Precio Regular Filtrado */}
-                          {producto.precio_usd ? (
-                            <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                              <div className="text-left">
-                                <p className="font-semibold text-blue-900">Precio USD</p>
-                                <p className="text-sm text-gray-600">
-                                  USD ${producto.precio_usd.toLocaleString()}
-                                </p>
-                                {dolarOficial && (
-                                  <p className="text-xs text-gray-500">
-                                    ARS ${(producto.precio_usd * dolarOficial).toLocaleString()}
-                                  </p>
-                                )}
-                              </div>
-                              <button
-                                onClick={(e) => handleAddToCartWrapper({
-                                  id: producto.id,
-                                  name: producto.nombre,
-                                  quantity: 1,
-                                  price: producto.precio_usd * (dolarOficial || 1000),
-                                  image: producto.imagen_url
-                                }, e)}
-                                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition flex items-center gap-2"
-                              >
-                                <ShoppingCart size={16} />
-                                Añadir
-                              </button>
-                            </div>
-                          ) : producto.precio_ars ? (
-                            <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
-                              <div className="text-left">
-                                <p className="font-semibold text-blue-900">Precio</p>
-                                <p className="text-lg font-bold text-gray-800">
-                                  ${parseFloat(producto.precio_ars).toLocaleString()}
-                                </p>
-                                <p className="text-xs text-gray-500">Pesos Argentinos</p>
-                              </div>
-                              <button
-                                onClick={(e) => handleAddToCartWrapper({
-                                  id: producto.id,
-                                  name: producto.nombre,
-                                  quantity: 1,
-                                  price: producto.precio_ars,
-                                  image: producto.imagen_url
-                                }, e)}
-                                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition flex items-center gap-2"
-                              >
-                                <ShoppingCart size={16} />
-                                Añadir
-                              </button>
-                            </div>
-                          ) : null}
-
-                          {/* Lógica de Precio Mayorista Filtrado */}
-                          {producto.precio_mayorista_usd ? (
-                            <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                              <div className="text-left">
-                                <p className="font-semibold text-green-900">
-                                  Mayorista ({producto.cantidad_minima_mayorista}+ u)
-                                </p>
-                                <p className="text-sm text-gray-600">
-                                  USD ${producto.precio_mayorista_usd.toLocaleString()}
-                                </p>
-                                {dolarOficial && (
-                                  <p className="text-xs text-gray-500">
-                                    ARS ${(producto.precio_mayorista_usd * dolarOficial).toLocaleString()}
-                                  </p>
-                                )}
-                              </div>
-                              <button
-                                onClick={(e) => handleAddToCartWrapper({
-                                  id: producto.id,
-                                  name: `${producto.nombre} (Mayorista)`,
-                                  quantity: producto.cantidad_minima_mayorista,
-                                  price: producto.precio_mayorista_usd * (dolarOficial || 1000),
-                                  image: producto.imagen_url
-                                }, e)}
-                                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition flex items-center gap-2"
-                              >
-                                <ShoppingCart size={16} />
-                                Añadir
-                              </button>
-                            </div>
-                          ) : producto.precio_mayorista_ars ? (
-                            <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
-                              <div className="text-left">
-                                <p className="font-semibold text-green-900">
-                                  Mayorista ({producto.cantidad_minima_mayorista}+ u)
-                                </p>
-                                <p className="text-lg font-bold text-gray-800">
-                                  ${parseFloat(producto.precio_mayorista_ars).toLocaleString()}
-                                </p>
-                                <p className="text-xs text-gray-500">Pesos Argentinos</p>
-                              </div>
-                              <button
-                                onClick={(e) => handleAddToCartWrapper({
-                                  id: producto.id,
-                                  name: `${producto.nombre} (Mayorista)`,
-                                  quantity: producto.cantidad_minima_mayorista,
-                                  price: producto.precio_mayorista_ars,
-                                  image: producto.imagen_url
-                                }, e)}
-                                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition flex items-center gap-2"
-                              >
-                                <ShoppingCart size={16} />
-                                Añadir
-                              </button>
-                            </div>
-                          ) : null}
-                        </div>
-                      </div>
+                    <div key={producto.id} className="h-full">
+                      <ProductCardSupabase
+                        product={producto}
+                        dolarOficial={dolarOficial}
+                        onAddToCart={handleAddToCartWrapper}
+                        onClick={(prod) => handleProductClick(prod, "filtered")}
+                      />
                     </div>
                   ))}
                 </div>
@@ -1253,6 +1085,13 @@ const ProductSection = ({ id, cart, addToCart }) => {
           </div>
         </div>
       </div>
+
+      {/* Cart Drawer */}
+      <CartDrawer
+        isOpen={showCartDrawer}
+        onClose={() => setShowCartDrawer(false)}
+        cart={cart}
+      />
     </section>
   );
 };

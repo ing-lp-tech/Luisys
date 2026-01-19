@@ -93,6 +93,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/admin/Dashboard";
 import ProductManager from "./pages/admin/ProductManager";
 import CategoryManager from "./pages/admin/CategoryManager";
+import AdminLeads from "./pages/admin/AdminLeads";
 import { SiteConfigEditor } from "./components/admin/SiteConfigEditor";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useEffect, useState } from "react";
@@ -203,6 +204,14 @@ const AppContent = ({ cart, addToCart, removeFromCart }) => {
             element={
               <ProtectedRoute>
                 <CategoryManager />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/leads"
+            element={
+              <ProtectedRoute>
+                <AdminLeads />
               </ProtectedRoute>
             }
           />

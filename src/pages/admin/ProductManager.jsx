@@ -48,7 +48,10 @@ export default function ProductManager() {
         destacado: false,
         specs: '{}',
         combos: '{}',
-        imagen: null
+        specs: '{}',
+        combos: '{}',
+        imagen: null,
+        nuevasImagenes: [] // Array para múltiples imágenes
     });
 
     useEffect(() => {
@@ -87,8 +90,17 @@ export default function ProductManager() {
     };
 
     const handleImageChange = (e) => {
-        if (e.target.files[0]) {
-            setFormData({ ...formData, imagen: e.target.files[0] });
+        if (e.target.files) {
+            const files = Array.from(e.target.files);
+            if (files.length > 3) {
+                alert('Máximo 3 imágenes permitidas');
+                return;
+            }
+            setFormData({
+                ...formData,
+                nuevasImagenes: files,
+                imagen: files[0] // Mantener compatibilidad con lógica anterior para preview principal
+            });
         }
     };
 
@@ -108,7 +120,10 @@ export default function ProductManager() {
             destacado: producto.destacado || false,
             specs: JSON.stringify(producto.specs || {}, null, 2),
             combos: JSON.stringify(producto.combos || {}, null, 2),
-            imagen: null
+            specs: JSON.stringify(producto.specs || {}, null, 2),
+            combos: JSON.stringify(producto.combos || {}, null, 2),
+            imagen: null,
+            nuevasImagenes: []
         });
         setEditModal(true);
     };
@@ -134,7 +149,8 @@ export default function ProductManager() {
             destacado: false,
             specs: '{}',
             combos: '{}',
-            imagen: null
+            imagen: null,
+            nuevasImagenes: []
         });
     };
 
@@ -144,23 +160,33 @@ export default function ProductManager() {
 
         try {
             let imagenUrl = editingProduct?.imagen_url || null;
+            let galeriaUrls = editingProduct?.galeria || [];
 
-            // Upload nueva imagen si existe
-            if (formData.imagen) {
-                const fileExt = formData.imagen.name.split('.').pop();
-                const fileName = `${Date.now()}.${fileExt}`;
+            // Si se suben nuevas imágenes
+            if (formData.nuevasImagenes && formData.nuevasImagenes.length > 0) {
+                const uploadedUrls = [];
 
-                const { error: uploadError } = await supabase.storage
-                    .from('productos-imagenes')
-                    .upload(fileName, formData.imagen);
+                // Subir cada imagen
+                for (const file of formData.nuevasImagenes) {
+                    const fileExt = file.name.split('.').pop();
+                    const fileName = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-                if (uploadError) throw uploadError;
+                    const { error: uploadError } = await supabase.storage
+                        .from('productos-imagenes')
+                        .upload(fileName, file);
 
-                const { data: { publicUrl } } = supabase.storage
-                    .from('productos-imagenes')
-                    .getPublicUrl(fileName);
+                    if (uploadError) throw uploadError;
 
-                imagenUrl = publicUrl;
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('productos-imagenes')
+                        .getPublicUrl(fileName);
+
+                    uploadedUrls.push(publicUrl);
+                }
+
+                // Actualizar URLs
+                galeriaUrls = uploadedUrls;
+                imagenUrl = uploadedUrls[0]; // La primera es la principal
             }
 
             // Parsear JSON
@@ -189,7 +215,8 @@ export default function ProductManager() {
                 destacado: formData.destacado,
                 specs,
                 combos,
-                imagen_url: imagenUrl
+                imagen_url: imagenUrl,
+                galeria: galeriaUrls
             };
 
             if (editingProduct) {
@@ -408,18 +435,23 @@ export default function ProductManager() {
                         <div className="form-field">
                             <label>
                                 <ImageIcon size={18} />
-                                Imagen del Producto
+                                Imágenes del Producto (Máx 3)
                             </label>
                             <input
                                 type="file"
                                 accept="image/*"
+                                multiple
                                 onChange={handleImageChange}
                                 className="file-input"
                             />
-                            {formData.imagen && (
-                                <p className="file-preview">
-                                    Archivo: {formData.imagen.name}
-                                </p>
+                            {formData.nuevasImagenes.length > 0 && (
+                                <div className="file-preview-list" style={{ marginTop: '10px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                                    {formData.nuevasImagenes.map((file, idx) => (
+                                        <div key={idx} className="preview-item">
+                                            <span style={{ fontSize: '12px' }}>{file.name}</span>
+                                        </div>
+                                    ))}
+                                </div>
                             )}
                         </div>
 
@@ -672,15 +704,39 @@ export default function ProductManager() {
                                 </div>
 
                                 <div className="form-field">
-                                    <label>Cambiar Imagen</label>
+                                    <label>Cambiar Imágenes (Máx 3)</label>
                                     <input
                                         type="file"
                                         accept="image/*"
+                                        multiple
                                         onChange={handleImageChange}
                                         className="file-input"
                                     />
-                                    {editingProduct?.imagen_url && !formData.imagen && (
-                                        <img src={editingProduct.imagen_url} alt="Current" style={{ width: '100px', marginTop: '10px' }} />
+                                    {/* Preview de imágenes existentes */}
+                                    {editingProduct?.galeria && editingProduct.galeria.length > 0 ? (
+                                        <div style={{ display: 'flex', gap: '5px', marginTop: '10px', overflowX: 'auto' }}>
+                                            {editingProduct.galeria.map((url, idx) => (
+                                                <img key={idx} src={url} alt={`Img ${idx}`} style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '4px' }} />
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        editingProduct?.imagen_url && !formData.nuevasImagenes.length && (
+                                            <img src={editingProduct.imagen_url} alt="Current" style={{ width: '100px', marginTop: '10px' }} />
+                                        )
+                                    )}
+
+                                    {/* Preview de nuevas imágenes seleccionadas */}
+                                    {formData.nuevasImagenes.length > 0 && (
+                                        <div style={{ marginTop: '10px' }}>
+                                            <p style={{ fontSize: '12px', fontWeight: 'bold' }}>Nuevas seleccionadas:</p>
+                                            <div style={{ display: 'flex', gap: '5px', marginTop: '5px' }}>
+                                                {formData.nuevasImagenes.map((file, idx) => (
+                                                    <div key={idx} style={{ width: '60px', height: '60px', background: '#eee', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', border: '1px solid #ccc' }}>
+                                                        {file.name.slice(0, 10)}...
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
                                     )}
                                 </div>
 
