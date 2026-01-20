@@ -94,6 +94,7 @@ import Dashboard from "./pages/admin/Dashboard";
 import ProductManager from "./pages/admin/ProductManager";
 import CategoryManager from "./pages/admin/CategoryManager";
 import AdminLeads from "./pages/admin/AdminLeads";
+import AdminUsers from "./pages/admin/AdminUsers";
 import { SiteConfigEditor } from "./components/admin/SiteConfigEditor";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useEffect, useState } from "react";
@@ -186,7 +187,7 @@ const AppContent = ({ cart, addToCart, removeFromCart }) => {
           <Route
             path="/admin/upload-pdf"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['admin', 'owner']}>
                 <ManualUploader />
               </ProtectedRoute>
             }
@@ -194,7 +195,7 @@ const AppContent = ({ cart, addToCart, removeFromCart }) => {
           <Route
             path="/admin/products"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['admin', 'owner']}>
                 <ProductManager />
               </ProtectedRoute>
             }
@@ -202,7 +203,7 @@ const AppContent = ({ cart, addToCart, removeFromCart }) => {
           <Route
             path="/admin/categories"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['admin', 'owner']}>
                 <CategoryManager />
               </ProtectedRoute>
             }
@@ -210,15 +211,23 @@ const AppContent = ({ cart, addToCart, removeFromCart }) => {
           <Route
             path="/admin/leads"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['admin', 'vendedor', 'owner']}>
                 <AdminLeads />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'owner']}>
+                <AdminUsers />
               </ProtectedRoute>
             }
           />
           <Route
             path="/admin/site-config"
             element={
-              <ProtectedRoute>
+              <ProtectedRoute allowedRoles={['admin', 'owner']}>
                 <div className="p-4 md:p-8 bg-gray-100 min-h-screen">
                   <div className="max-w-7xl mx-auto">
                     <div className="mb-6">

@@ -14,11 +14,41 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [role, setRole] = useState(null);
+
+    const fetchUserRole = async (sessionUser) => {
+        if (!sessionUser) {
+            setRole(null);
+            return;
+        }
+
+        try {
+            // Consultamos la tabla de perfiles
+            const { data, error } = await supabase
+                .from('user_profiles')
+                .select('role')
+                .eq('id', sessionUser.id)
+                .single();
+
+            if (data?.role) {
+                setRole(data.role);
+            } else {
+                // Si no existe perfil, por defecto es un usuario normal
+                setRole('user');
+            }
+        } catch (error) {
+            console.error('Error fetching role:', error);
+            setRole('user');
+        }
+    };
 
     useEffect(() => {
         // Check active session
         supabase.auth.getSession().then(({ data: { session } }) => {
             setUser(session?.user ?? null);
+            if (session?.user) {
+                fetchUserRole(session.user);
+            }
             setLoading(false);
         });
 
@@ -26,10 +56,12 @@ export const AuthProvider = ({ children }) => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             if (event === 'SIGNED_OUT') {
                 setUser(null);
-                setLoading(false);
-            } else {
-                setUser(session?.user ?? null);
+                setRole(null);
+            } else if (session?.user) {
+                setUser(session.user);
+                fetchUserRole(session.user);
             }
+            setLoading(false);
         });
 
         return () => subscription.unsubscribe();
@@ -45,12 +77,14 @@ export const AuthProvider = ({ children }) => {
 
     const signOut = async () => {
         const { error } = await supabase.auth.signOut();
-        setUser(null); // Force state update immediately
+        setUser(null);
+        setRole(null);
         return { error };
     };
 
     const value = {
         user,
+        role,
         signIn,
         signOut,
         loading,
