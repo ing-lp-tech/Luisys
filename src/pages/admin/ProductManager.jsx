@@ -48,8 +48,6 @@ export default function ProductManager() {
         destacado: false,
         specs: '{}',
         combos: '{}',
-        specs: '{}',
-        combos: '{}',
         imagen: null,
         nuevasImagenes: [] // Array para múltiples imágenes
     });
@@ -118,8 +116,6 @@ export default function ProductManager() {
             cantidad_minima_mayorista: producto.cantidad_minima_mayorista || 1,
             stock_actual: producto.stock_actual || 0,
             destacado: producto.destacado || false,
-            specs: JSON.stringify(producto.specs || {}, null, 2),
-            combos: JSON.stringify(producto.combos || {}, null, 2),
             specs: JSON.stringify(producto.specs || {}, null, 2),
             combos: JSON.stringify(producto.combos || {}, null, 2),
             imagen: null,

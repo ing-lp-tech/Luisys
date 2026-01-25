@@ -96,6 +96,7 @@ import CategoryManager from "./pages/admin/CategoryManager";
 import AdminLeads from "./pages/admin/AdminLeads";
 import AdminUsers from "./pages/admin/AdminUsers";
 import { SiteConfigEditor } from "./components/admin/SiteConfigEditor";
+import SalesManager from "./pages/admin/SalesManager";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useEffect, useState } from "react";
 
@@ -237,6 +238,14 @@ const AppContent = ({ cart, addToCart, removeFromCart }) => {
                     <SiteConfigEditor />
                   </div>
                 </div>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/sales"
+            element={
+              <ProtectedRoute allowedRoles={['admin', 'owner']}>
+                <SalesManager />
               </ProtectedRoute>
             }
           />

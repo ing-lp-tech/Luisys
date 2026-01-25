@@ -55,6 +55,12 @@ export default function Dashboard() {
                             <h2>Gestionar Contenido</h2>
                             <p>Editar imágenes de inicio, logos y "Sobre Mí"</p>
                         </div>
+
+                        <div className="dashboard-card" onClick={() => navigate('/admin/sales')}>
+                            <BarChart3 size={32} />
+                            <h2>Administrador de Ventas</h2>
+                            <p>Control de stock, ventas y contratos</p>
+                        </div>
                     </>
                 )}
 
