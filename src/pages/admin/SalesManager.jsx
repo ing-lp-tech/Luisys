@@ -37,7 +37,11 @@ export default function SalesManager() {
         sale_price_usd: '',
         sale_price_ars: '',
         sale_date: new Date().toISOString().split('T')[0],
-        files: []
+        files: [], // Contratos/documentos
+        observations: '', // NUEVO: Observaciones
+        amount_paid_ars: '', // NUEVO: Monto pagado
+        payment_status: 'pending', // NUEVO: Estado de pago
+        product_images: [] // NUEVO: Imágenes del producto (separado de files)
     });
 
     useEffect(() => {
@@ -155,10 +159,22 @@ export default function SalesManager() {
         if (!saleForm.filter_product_id) return alert('Selecciona un producto');
         if (!saleForm.serial_input) return alert('Ingresa o selecciona un número de serie');
 
+        // Validación: El monto pagado no puede ser mayor al precio de venta
+        const salePriceArs = cleanNumber(saleForm.sale_price_ars);
+        const amountPaidArs = cleanNumber(saleForm.amount_paid_ars);
+        if (amountPaidArs > salePriceArs) {
+            return alert('El monto pagado no puede ser mayor al precio de venta');
+        }
+
+        // Validación: Máximo 5 imágenes del producto
+        if (saleForm.product_images.length > 5) {
+            return alert('Máximo 5 imágenes del producto permitidas');
+        }
+
         setSubmitting(true);
         try {
-            // 1. Upload files first (best effort - don't fail if bucket has issues)
-            const uploadedUrls = [];
+            // 1. Upload CONTRACT files first (best effort - don't fail if bucket has issues)
+            const uploadedContractUrls = [];
             let uploadWarning = '';
 
             if (saleForm.files.length > 0) {
@@ -169,15 +185,33 @@ export default function SalesManager() {
                         const { error } = await supabase.storage.from('sales-contracts').upload(name, file);
                         if (error) throw error;
                         const { data } = supabase.storage.from('sales-contracts').getPublicUrl(name);
-                        uploadedUrls.push(data.publicUrl);
+                        uploadedContractUrls.push(data.publicUrl);
                     }
                 } catch (uploadError) {
-                    console.error('File upload failed:', uploadError);
-                    uploadWarning = '\n\n⚠️ Archivos NO se subieron (problema de permisos). La venta se guardó sin archivos.';
+                    console.error('Contract file upload failed:', uploadError);
+                    uploadWarning = '\n\n⚠️ Archivos de contrato NO se subieron (problema de permisos). La venta se guardó sin archivos.';
                 }
             }
 
-            // 2. Check if item exists in stock
+            // 2. Upload PRODUCT IMAGES (nuevo)
+            const uploadedImageUrls = [];
+            if (saleForm.product_images.length > 0) {
+                try {
+                    for (const file of saleForm.product_images) {
+                        const ext = file.name.split('.').pop();
+                        const name = `product_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+                        const { error } = await supabase.storage.from('sales-contracts').upload(name, file);
+                        if (error) throw error;
+                        const { data } = supabase.storage.from('sales-contracts').getPublicUrl(name);
+                        uploadedImageUrls.push(data.publicUrl);
+                    }
+                } catch (uploadError) {
+                    console.error('Product image upload failed:', uploadError);
+                    uploadWarning += '\n\n⚠️ Imágenes del producto NO se subieron.';
+                }
+            }
+
+            // 3. Check if item exists in stock
             const existingItem = availableItems.find(i =>
                 i.product_id === saleForm.filter_product_id &&
                 i.serial_number === saleForm.serial_input
@@ -190,11 +224,15 @@ export default function SalesManager() {
                 const { error: updateError } = await supabase.from('inventory_items').update({
                     status: 'sold',
                     client_name: saleForm.client_name,
-                    client_dni: saleForm.client_dni, // NEW
+                    client_dni: saleForm.client_dni,
                     sale_price_usd: cleanNumber(saleForm.sale_price_usd),
-                    sale_price_ars: cleanNumber(saleForm.sale_price_ars),
+                    sale_price_ars: salePriceArs,
                     sale_date: saleForm.sale_date,
-                    contract_files: uploadedUrls.length > 0 ? uploadedUrls : null
+                    contract_files: uploadedContractUrls.length > 0 ? uploadedContractUrls : null,
+                    observations: saleForm.observations || null, // NUEVO
+                    amount_paid_ars: amountPaidArs, // NUEVO
+                    payment_status: saleForm.payment_status, // NUEVO
+                    product_images: uploadedImageUrls.length > 0 ? uploadedImageUrls : null // NUEVO
                 }).eq('id', existingItem.id);
                 error = updateError;
             } else {
@@ -204,12 +242,16 @@ export default function SalesManager() {
                     serial_number: saleForm.serial_input,
                     status: 'sold',
                     client_name: saleForm.client_name,
-                    client_dni: saleForm.client_dni, // NEW
+                    client_dni: saleForm.client_dni,
                     sale_price_usd: cleanNumber(saleForm.sale_price_usd),
-                    sale_price_ars: cleanNumber(saleForm.sale_price_ars),
+                    sale_price_ars: salePriceArs,
                     sale_date: saleForm.sale_date,
-                    contract_files: uploadedUrls.length > 0 ? uploadedUrls : null,
-                    purchase_date: saleForm.sale_date // Default purchase date to sale date if unknown
+                    contract_files: uploadedContractUrls.length > 0 ? uploadedContractUrls : null,
+                    purchase_date: saleForm.sale_date, // Default purchase date to sale date if unknown
+                    observations: saleForm.observations || null, // NUEVO
+                    amount_paid_ars: amountPaidArs, // NUEVO
+                    payment_status: saleForm.payment_status, // NUEVO
+                    product_images: uploadedImageUrls.length > 0 ? uploadedImageUrls : null // NUEVO
                 });
                 error = insertError;
             }
@@ -225,7 +267,11 @@ export default function SalesManager() {
                 sale_price_usd: '',
                 sale_price_ars: '',
                 sale_date: new Date().toISOString().split('T')[0],
-                files: []
+                files: [],
+                observations: '', // RESET
+                amount_paid_ars: '', // RESET
+                payment_status: 'pending', // RESET
+                product_images: [] // RESET
             });
             fetchInventory();
         } catch (err) { alert(err.message); }
@@ -241,7 +287,8 @@ export default function SalesManager() {
     // --- Filtering ---
     const filteredInventory = inventory.filter(i => {
         // 1. Filter by View Mode (Tab)
-        if (viewMode === 'stock' && i.status !== 'available') return false;
+        // MODIFICADO: En 'stock' mostramos TODAS las entradas (disponibles y vendidas)
+        // para mantener el registro completo
         if (viewMode === 'sold' && i.status !== 'sold') return false;
 
         // 2. Filter by Search Text
@@ -275,14 +322,26 @@ export default function SalesManager() {
             cost_ars: formatNumber(item.cost_ars),
             sale_price_usd: formatNumber(item.sale_price_usd),
             sale_price_ars: formatNumber(item.sale_price_ars),
-            newFiles: [] // Initialize for new uploads
+            amount_paid_ars: formatNumber(item.amount_paid_ars), // NUEVO
+            observations: item.observations || '', // NUEVO
+            payment_status: item.payment_status || 'pending', // NUEVO
+            newFiles: [], // Initialize for new uploads (contracts)
+            newProductImages: [] // NUEVO: para nuevas imágenes del producto
         });
     };
 
     const handleSaveEdit = async () => {
         try {
-            // 1. Handle File Uploads
-            let finalFiles = editForm.contract_files || []; // Start with existing kept files
+            // Validación: El monto pagado no puede ser mayor al precio de venta
+            const salePriceArs = cleanNumber(editForm.sale_price_ars);
+            const amountPaidArs = cleanNumber(editForm.amount_paid_ars);
+            if (amountPaidArs > salePriceArs) {
+                alert('El monto pagado no puede ser mayor al precio de venta');
+                return;
+            }
+
+            // 1. Handle Contract File Uploads
+            let finalContractFiles = editForm.contract_files || []; // Start with existing kept files
 
             if (editForm.newFiles && editForm.newFiles.length > 0) {
                 for (const file of editForm.newFiles) {
@@ -291,11 +350,32 @@ export default function SalesManager() {
                     const { error } = await supabase.storage.from('sales-contracts').upload(name, file);
                     if (error) throw error;
                     const { data } = supabase.storage.from('sales-contracts').getPublicUrl(name);
-                    finalFiles.push(data.publicUrl);
+                    finalContractFiles.push(data.publicUrl);
                 }
             }
 
-            // 2. Prepare Updates
+            // 2. Handle Product Image Uploads (NUEVO)
+            let finalProductImages = editForm.product_images || []; // Start with existing kept images
+
+            if (editForm.newProductImages && editForm.newProductImages.length > 0) {
+                // Validar límite de 5 imágenes total
+                const totalImages = finalProductImages.length + editForm.newProductImages.length;
+                if (totalImages > 5) {
+                    alert('Máximo 5 imágenes del producto permitidas');
+                    return;
+                }
+
+                for (const file of editForm.newProductImages) {
+                    const ext = file.name.split('.').pop();
+                    const name = `product_${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+                    const { error } = await supabase.storage.from('sales-contracts').upload(name, file);
+                    if (error) throw error;
+                    const { data } = supabase.storage.from('sales-contracts').getPublicUrl(name);
+                    finalProductImages.push(data.publicUrl);
+                }
+            }
+
+            // 3. Prepare Updates
             const updates = {
                 serial_number: editForm.serial_number,
                 model_variant: editForm.model_variant,
@@ -304,9 +384,13 @@ export default function SalesManager() {
                 client_name: editForm.client_name,
                 client_dni: editForm.client_dni,
                 sale_price_usd: cleanNumber(editForm.sale_price_usd),
-                sale_price_ars: cleanNumber(editForm.sale_price_ars),
+                sale_price_ars: salePriceArs,
                 status: editForm.status,
-                contract_files: finalFiles // Update files list
+                contract_files: finalContractFiles, // Update files list
+                observations: editForm.observations || null, // NUEVO
+                amount_paid_ars: amountPaidArs, // NUEVO
+                payment_status: editForm.payment_status, // NUEVO
+                product_images: finalProductImages.length > 0 ? finalProductImages : null // NUEVO
             };
 
             const { error } = await supabase.from('inventory_items').update(updates).eq('id', editingItem.id);
@@ -459,6 +543,18 @@ export default function SalesManager() {
                         </div>
 
                         <div className="cmd-group">
+                            <label className="cmd-label">Observaciones</label>
+                            <textarea
+                                className="cmd-input"
+                                rows="3"
+                                placeholder="Notas sobre la venta, condiciones especiales, etc..."
+                                value={saleForm.observations}
+                                onChange={e => setSaleForm({ ...saleForm, observations: e.target.value })}
+                                style={{ resize: 'vertical', minHeight: '60px' }}
+                            />
+                        </div>
+
+                        <div className="cmd-group">
                             <label className="cmd-label">Precio Venta (USD)</label>
                             <input
                                 className="cmd-input"
@@ -478,10 +574,151 @@ export default function SalesManager() {
                                 onChange={e => handlePriceChange(e, saleForm, setSaleForm, 'sale_price_ars')}
                             />
                         </div>
+
+                        <div className="cmd-group">
+                            <label className="cmd-label">Monto Pagado (ARS)</label>
+                            <input
+                                className="cmd-input"
+                                type="text"
+                                placeholder="0"
+                                value={saleForm.amount_paid_ars}
+                                onChange={e => handlePriceChange(e, saleForm, setSaleForm, 'amount_paid_ars')}
+                            />
+                        </div>
+
+                        {/* Saldo Pendiente - Calculado automáticamente */}
+                        {saleForm.sale_price_ars && (
+                            <div className="cmd-group">
+                                <label className="cmd-label">Saldo Pendiente (ARS)</label>
+                                <input
+                                    className="cmd-input"
+                                    type="text"
+                                    readOnly
+                                    value={formatNumber(
+                                        Math.max(0, cleanNumber(saleForm.sale_price_ars) - cleanNumber(saleForm.amount_paid_ars))
+                                    )}
+                                    style={{
+                                        backgroundColor: '#fee2e2',
+                                        color: '#dc2626',
+                                        fontWeight: 600,
+                                        cursor: 'not-allowed'
+                                    }}
+                                />
+                            </div>
+                        )}
+
+                        {/* Checkbox Pagado */}
+                        <div className="cmd-group">
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={saleForm.payment_status === 'paid'}
+                                    onChange={e => setSaleForm({
+                                        ...saleForm,
+                                        payment_status: e.target.checked ? 'paid' : 'pending'
+                                    })}
+                                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                />
+                                <span style={{ fontSize: '0.9rem', color: '#64748b' }}>
+                                    Marcar como <b>PAGADO</b> (sin deuda pendiente)
+                                </span>
+                            </label>
+                        </div>
+
                         <div className="cmd-group">
                             <label className="cmd-label">Fecha Venta</label>
                             <input className="cmd-input" type="date" required value={saleForm.sale_date} onChange={e => setSaleForm({ ...saleForm, sale_date: e.target.value })} />
                         </div>
+
+                        {/* Imágenes del Producto - NUEVO */}
+                        <div className="cmd-group">
+                            <label className="cmd-label">Imágenes del Producto (Máx 5)</label>
+                            <input
+                                type="file"
+                                multiple
+                                accept="image/*"
+                                id="productImages"
+                                style={{ display: 'none' }}
+                                onChange={e => {
+                                    if (e.target.files) {
+                                        const newFiles = Array.from(e.target.files);
+                                        const totalFiles = saleForm.product_images.length + newFiles.length;
+                                        if (totalFiles > 5) {
+                                            alert('Máximo 5 imágenes del producto permitidas');
+                                            return;
+                                        }
+                                        setSaleForm(p => ({ ...p, product_images: [...p.product_images, ...newFiles] }));
+                                    }
+                                }}
+                            />
+                            <label
+                                htmlFor="productImages"
+                                style={{
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    padding: '8px 12px',
+                                    border: '2px dashed #cbd5e1',
+                                    borderRadius: '6px',
+                                    backgroundColor: '#f8fafc',
+                                    transition: 'all 0.2s'
+                                }}
+                                onMouseOver={e => e.currentTarget.style.borderColor = '#3b82f6'}
+                                onMouseOut={e => e.currentTarget.style.borderColor = '#cbd5e1'}
+                            >
+                                <Upload size={20} style={{ color: '#64748b' }} />
+                                <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
+                                    Seleccionar imágenes ({saleForm.product_images.length}/5)
+                                </span>
+                            </label>
+                            {saleForm.product_images.length > 0 && (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px', marginTop: '8px' }}>
+                                    {saleForm.product_images.map((file, i) => (
+                                        <div key={i} style={{ position: 'relative' }}>
+                                            <img
+                                                src={URL.createObjectURL(file)}
+                                                alt={`Preview ${i + 1}`}
+                                                style={{
+                                                    width: '100%',
+                                                    height: '80px',
+                                                    objectFit: 'cover',
+                                                    borderRadius: '4px',
+                                                    border: '1px solid #e2e8f0'
+                                                }}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const newImages = saleForm.product_images.filter((_, idx) => idx !== i);
+                                                    setSaleForm({ ...saleForm, product_images: newImages });
+                                                }}
+                                                style={{
+                                                    position: 'absolute',
+                                                    top: '2px',
+                                                    right: '2px',
+                                                    backgroundColor: '#ef4444',
+                                                    color: 'white',
+                                                    border: 'none',
+                                                    borderRadius: '50%',
+                                                    width: '20px',
+                                                    height: '20px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    cursor: 'pointer',
+                                                    fontSize: '12px',
+                                                    fontWeight: 'bold'
+                                                }}
+                                            >
+                                                ×
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
                         <div className="cmd-group">
                             <label className="cmd-label">Contrato / Fotos</label>
                             <div className="compact-upload">
@@ -535,7 +772,7 @@ export default function SalesManager() {
                 <div className="table-card">
                     <div className="table-toolbar">
                         <div className="table-title">
-                            {viewMode === 'stock' ? 'Listado de Stock Disponible' : 'Historial de Ventas'}
+                            {viewMode === 'stock' ? 'Registro de Entradas (Todas)' : 'Historial de Ventas'}
                         </div>
                         <div className="search-box">
                             <Search className="search-icon" />
@@ -565,17 +802,124 @@ export default function SalesManager() {
                                             <div className="product-cell">{item.productos?.nombre}</div>
                                             <div className="variant-sub">{item.model_variant}</div>
                                         </td>
-                                        <td style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>{item.serial_number}</td>
+                                        <td style={{ fontFamily: 'monospace', fontSize: '0.85rem' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                <span>{item.serial_number}</span>
+                                                {viewMode === 'stock' && item.status === 'sold' && (
+                                                    <>
+                                                        <span style={{
+                                                            backgroundColor: '#fee2e2',
+                                                            color: '#dc2626',
+                                                            padding: '2px 8px',
+                                                            borderRadius: '4px',
+                                                            fontSize: '0.7rem',
+                                                            fontWeight: 600,
+                                                            fontFamily: 'system-ui'
+                                                        }}>
+                                                            VENDIDO
+                                                        </span>
+                                                        {/* Badge de estado de pago */}
+                                                        {item.payment_status === 'paid' ? (
+                                                            <span style={{
+                                                                backgroundColor: '#dcfce7',
+                                                                color: '#16a34a',
+                                                                padding: '2px 8px',
+                                                                borderRadius: '4px',
+                                                                fontSize: '0.7rem',
+                                                                fontWeight: 600,
+                                                                fontFamily: 'system-ui'
+                                                            }}>
+                                                                ✓ PAGADO
+                                                            </span>
+                                                        ) : (
+                                                            <span style={{
+                                                                backgroundColor: '#fef9c3',
+                                                                color: '#ca8a04',
+                                                                padding: '2px 8px',
+                                                                borderRadius: '4px',
+                                                                fontSize: '0.7rem',
+                                                                fontWeight: 600,
+                                                                fontFamily: 'system-ui'
+                                                            }}>
+                                                                ⏱ PENDIENTE
+                                                            </span>
+                                                        )}
+                                                    </>
+                                                )}
+                                            </div>
+                                        </td>
                                         <td>
                                             {item.status === 'available' ? (
                                                 <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
                                                     Compra: {item.purchase_date} <br />
                                                     Costo: ${item.cost_usd || 0} USD
+                                                    {item.observations && (
+                                                        <>
+                                                            <br />
+                                                            <span style={{ fontStyle: 'italic', fontSize: '0.75rem' }}>
+                                                                💬 {item.observations.substring(0, 50)}{item.observations.length > 50 ? '...' : ''}
+                                                            </span>
+                                                        </>
+                                                    )}
                                                 </div>
                                             ) : (
                                                 <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                                                    Cliente: <b>{item.client_name}</b> <br />
-                                                    {item.client_dni && <span>DNI: {item.client_dni}</span>}
+                                                    Compra: {item.purchase_date} <br />
+                                                    Costo: ${item.cost_usd || 0} USD
+                                                    {viewMode === 'stock' && (
+                                                        <>
+                                                            <br />
+                                                            <span style={{ color: '#dc2626', fontWeight: 600 }}>
+                                                                Vendido a: {item.client_name}
+                                                            </span>
+                                                            <br />
+                                                            {/* Información de pago */}
+                                                            {item.sale_price_ars && (
+                                                                <span style={{ fontSize: '0.75rem' }}>
+                                                                    💰 Pagado: ${formatNumber(item.amount_paid_ars || 0)} / ${formatNumber(item.sale_price_ars)}
+                                                                    {item.payment_status !== 'paid' && item.sale_price_ars > (item.amount_paid_ars || 0) && (
+                                                                        <span style={{ color: '#dc2626', fontWeight: 600 }}>
+                                                                            {' '}(Saldo: ${formatNumber(item.sale_price_ars - (item.amount_paid_ars || 0))})
+                                                                        </span>
+                                                                    )}
+                                                                </span>
+                                                            )}
+                                                            {item.observations && (
+                                                                <>
+                                                                    <br />
+                                                                    <span style={{ fontStyle: 'italic', fontSize: '0.75rem' }}>
+                                                                        💬 {item.observations.substring(0, 40)}{item.observations.length > 40 ? '...' : ''}
+                                                                    </span>
+                                                                </>
+                                                            )}
+                                                        </>
+                                                    )}
+                                                    {viewMode === 'sold' && (
+                                                        <>
+                                                            Cliente: <b>{item.client_name}</b> <br />
+                                                            {item.client_dni && <span>DNI: {item.client_dni}</span>}
+                                                            <br />
+                                                            {/* Información de pago */}
+                                                            {item.sale_price_ars && (
+                                                                <span style={{ fontSize: '0.75rem' }}>
+                                                                    💰 Pagado: ${formatNumber(item.amount_paid_ars || 0)} / ${formatNumber(item.sale_price_ars)}
+                                                                    {item.payment_status !== 'paid' && item.sale_price_ars > (item.amount_paid_ars || 0) && (
+                                                                        <span style={{ color: '#dc2626', fontWeight: 600 }}>
+                                                                            {' '}(Saldo: ${formatNumber(item.sale_price_ars - (item.amount_paid_ars || 0))})
+                                                                        </span>
+                                                                    )}
+                                                                </span>
+                                                            )}
+                                                            {item.observations && (
+                                                                <>
+                                                                    <br />
+                                                                    <span style={{ fontStyle: 'italic', fontSize: '0.75rem' }}>
+                                                                        💬 {item.observations.substring(0, 50)}{item.observations.length > 50 ? '...' : ''}
+                                                                    </span>
+                                                                </>
+                                                            )}
+                                                        </>
+                                                    )}
                                                 </div>
                                             )}
                                         </td>
@@ -684,9 +1028,212 @@ export default function SalesManager() {
                                         </div>
                                     </div>
 
-                                    {/* FILE MANAGEMENT */}
+                                    {/* NUEVOS CAMPOS DE PAGO Y OBSERVACIONES */}
+                                    <div className="cmd-group">
+                                        <label className="cmd-label">Observaciones</label>
+                                        <textarea
+                                            className="cmd-input"
+                                            rows="3"
+                                            placeholder="Notas sobre la venta..."
+                                            value={editForm.observations || ''}
+                                            onChange={e => setEditForm({ ...editForm, observations: e.target.value })}
+                                            style={{ resize: 'vertical', minHeight: '60px' }}
+                                        />
+                                    </div>
+
+                                    <div className="cmd-group">
+                                        <label className="cmd-label">Monto Pagado (ARS)</label>
+                                        <input
+                                            className="cmd-input"
+                                            type="text"
+                                            value={editForm.amount_paid_ars || 0}
+                                            onChange={e => handlePriceChange(e, editForm, setEditForm, 'amount_paid_ars')}
+                                        />
+                                    </div>
+
+                                    {/* Saldo Pendiente Calculado */}
+                                    {editForm.sale_price_ars && (
+                                        <div className="cmd-group">
+                                            <label className="cmd-label">Saldo Pendiente (ARS)</label>
+                                            <input
+                                                className="cmd-input"
+                                                type="text"
+                                                readOnly
+                                                value={formatNumber(
+                                                    Math.max(0, cleanNumber(editForm.sale_price_ars) - cleanNumber(editForm.amount_paid_ars))
+                                                )}
+                                                style={{
+                                                    backgroundColor: '#fee2e2',
+                                                    color: '#dc2626',
+                                                    fontWeight: 600,
+                                                    cursor: 'not-allowed'
+                                                }}
+                                            />
+                                        </div>
+                                    )}
+
+                                    {/* Checkbox Estado de Pago */}
+                                    <div className="cmd-group">
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={editForm.payment_status === 'paid'}
+                                                onChange={e => setEditForm({
+                                                    ...editForm,
+                                                    payment_status: e.target.checked ? 'paid' : 'pending'
+                                                })}
+                                                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                                            />
+                                            <span style={{ fontSize: '0.9rem', color: '#64748b' }}>
+                                                Marcar como <b>PAGADO</b>
+                                            </span>
+                                        </label>
+                                    </div>
+
+                                    {/* Imágenes del Producto */}
                                     <div className="cmd-group" style={{ marginTop: 10 }}>
-                                        <label className="cmd-label">Archivos / Fotos</label>
+                                        <label className="cmd-label">Imágenes del Producto (Máx 5)</label>
+
+                                        {/* Existing Images */}
+                                        {editForm.product_images && editForm.product_images.length > 0 && (
+                                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px', marginBottom: '8px' }}>
+                                                {editForm.product_images.map((url, i) => (
+                                                    <div key={i} style={{ position: 'relative' }}>
+                                                        <img
+                                                            src={url}
+                                                            alt={`Producto ${i + 1}`}
+                                                            style={{
+                                                                width: '100%',
+                                                                height: '80px',
+                                                                objectFit: 'cover',
+                                                                borderRadius: '4px',
+                                                                border: '1px solid #e2e8f0'
+                                                            }}
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const newImages = editForm.product_images.filter((_, idx) => idx !== i);
+                                                                setEditForm({ ...editForm, product_images: newImages });
+                                                            }}
+                                                            style={{
+                                                                position: 'absolute',
+                                                                top: '2px',
+                                                                right: '2px',
+                                                                backgroundColor: '#ef4444',
+                                                                color: 'white',
+                                                                border: 'none',
+                                                                borderRadius: '50%',
+                                                                width: '20px',
+                                                                height: '20px',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                cursor: 'pointer',
+                                                                fontSize: '12px',
+                                                                fontWeight: 'bold'
+                                                            }}
+                                                        >
+                                                            ×
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {/* New Uploads */}
+                                        {(editForm.product_images || []).length < 5 && (
+                                            <div style={{ marginTop: 5 }}>
+                                                <input
+                                                    type="file"
+                                                    multiple
+                                                    accept="image/*"
+                                                    id="editProductImages"
+                                                    style={{ display: 'none' }}
+                                                    onChange={e => {
+                                                        if (e.target.files) {
+                                                            const newFiles = Array.from(e.target.files);
+                                                            const currentCount = (editForm.product_images || []).length;
+                                                            const totalCount = currentCount + (editForm.newProductImages || []).length + newFiles.length;
+                                                            if (totalCount > 5) {
+                                                                alert('Máximo 5 imágenes del producto permitidas');
+                                                                return;
+                                                            }
+                                                            setEditForm({ ...editForm, newProductImages: [...(editForm.newProductImages || []), ...newFiles] });
+                                                        }
+                                                    }}
+                                                />
+                                                <label
+                                                    htmlFor="editProductImages"
+                                                    style={{
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: 5,
+                                                        fontSize: '0.85rem',
+                                                        color: '#64748b',
+                                                        padding: '8px',
+                                                        border: '2px dashed #cbd5e1',
+                                                        borderRadius: '6px',
+                                                        backgroundColor: '#f8fafc'
+                                                    }}
+                                                >
+                                                    <PlusCircle size={16} /> Agregar imágenes ({(editForm.product_images || []).length}/5)
+                                                </label>
+                                                {editForm.newProductImages && editForm.newProductImages.length > 0 && (
+                                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '8px', marginTop: '8px' }}>
+                                                        {editForm.newProductImages.map((file, i) => (
+                                                            <div key={i} style={{ position: 'relative' }}>
+                                                                <img
+                                                                    src={URL.createObjectURL(file)}
+                                                                    alt={`Nueva ${i + 1}`}
+                                                                    style={{
+                                                                        width: '100%',
+                                                                        height: '80px',
+                                                                        objectFit: 'cover',
+                                                                        borderRadius: '4px',
+                                                                        border: '1px solid #e2e8f0'
+                                                                    }}
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const kept = editForm.newProductImages.filter((_, idx) => idx !== i);
+                                                                        setEditForm({ ...editForm, newProductImages: kept });
+                                                                    }}
+                                                                    style={{
+                                                                        position: 'absolute',
+                                                                        top: '2px',
+                                                                        right: '2px',
+                                                                        backgroundColor: '#ef4444',
+                                                                        color: 'white',
+                                                                        border: 'none',
+                                                                        borderRadius: '50%',
+                                                                        width: '20px',
+                                                                        height: '20px',
+                                                                        display: 'flex',
+                                                                        alignItems: 'center',
+                                                                        justifyContent: 'center',
+                                                                        cursor: 'pointer',
+                                                                        fontSize: '12px',
+                                                                        fontWeight: 'bold'
+                                                                    }}
+                                                                >
+                                                                    ×
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <hr style={{ margin: '10px 0', borderColor: '#e2e8f0' }} />
+
+                                    {/* FILE MANAGEMENT - Contratos */}
+                                    <div className="cmd-group" style={{ marginTop: 10 }}>
+                                        <label className="cmd-label">Archivos / Contratos</label>
 
                                         {/* Existing Files */}
                                         {editForm.contract_files && editForm.contract_files.length > 0 && (
