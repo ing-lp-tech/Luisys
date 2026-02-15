@@ -97,6 +97,7 @@ import AdminLeads from "./pages/admin/AdminLeads";
 import AdminUsers from "./pages/admin/AdminUsers";
 import { SiteConfigEditor } from "./components/admin/SiteConfigEditor";
 import SalesManager from "./pages/admin/SalesManager";
+import InteresPlotter from "./pages/InteresPlotter"; // TikTok Ads Landing Page
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useEffect, useState } from "react";
 
@@ -176,6 +177,21 @@ const AppContent = ({ cart, addToCart, removeFromCart }) => {
           />
           <Route path="/upload-manual" element={<ManualUploader />} />
           <Route path="/chat-audaces" element={<ChatAudaces />} />
+
+          {/* TikTok Ads Landing Page - Redirección automática a WhatsApp */}
+          <Route
+            path="/interes-plotter"
+            element={
+              <>
+                <SEO
+                  title="Plotter de Tizada Profesional | Consulta Precio"
+                  description="Plotter de tizada de alta precisión para talleres textiles. Ahorrá tiempo y desperdicio. Consulta precio y financiación por WhatsApp."
+                />
+                <InteresPlotter />
+              </>
+            }
+          />
+
           <Route path="/login" element={<Login />} />
           <Route
             path="/admin/dashboard"
