@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
+import AdminHeader from '../../components/admin/AdminHeader';
 
 export default function AdminLeads() {
     const [leads, setLeads] = useState([]);
@@ -35,7 +36,8 @@ export default function AdminLeads() {
 
     return (
         <div className="p-6">
-            <h1 className="text-2xl font-bold mb-6">CRM - Clientes Potenciales</h1>
+            <AdminHeader title="CRM - Clientes Potenciales" />
+            <h1 className="text-2xl font-bold mb-6">Clientes Potenciales</h1>
 
             {loading ? (
                 <p>Cargando...</p>

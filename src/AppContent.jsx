@@ -71,7 +71,7 @@ const AppContent = ({ cart, addToCart, removeFromCart }) => {
 export default AppContent;
  */
 
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation, Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import HeroSection from "./components/HeroSection";
 import ProductSection from "./components/FeatureSection";
@@ -96,7 +96,7 @@ import CategoryManager from "./pages/admin/CategoryManager";
 import AdminLeads from "./pages/admin/AdminLeads";
 import AdminUsers from "./pages/admin/AdminUsers";
 import { SiteConfigEditor } from "./components/admin/SiteConfigEditor";
-import SalesManager from "./pages/admin/SalesManager";
+import FinanzasModule from "./pages/admin/FinanzasModule";
 import InteresPlotter from "./pages/InteresPlotter"; // TikTok Ads Landing Page
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useEffect, useState } from "react";
@@ -125,9 +125,9 @@ const AppContent = ({ cart, addToCart, removeFromCart }) => {
 
   return (
     <>
-      {!isComunidad && location.pathname !== '/login' && <Navbar />}
+      {!isComunidad && location.pathname !== '/login' && !isAdminRoute && <Navbar />}
       <div className="max-w-7xl mx-auto pt-0 px-0">
-        {!isComunidad && location.pathname !== '/login' && <WhatsAppButton />}
+        {!isComunidad && location.pathname !== '/login' && !isAdminRoute && <WhatsAppButton />}
 
         <Routes>
           <Route
@@ -258,12 +258,17 @@ const AppContent = ({ cart, addToCart, removeFromCart }) => {
             }
           />
           <Route
-            path="/admin/sales"
+            path="/admin/finanzas"
             element={
               <ProtectedRoute allowedRoles={['admin', 'owner']}>
-                <SalesManager />
+                <FinanzasModule />
               </ProtectedRoute>
             }
+          />
+          {/* Redirección por compatibilidad */}
+          <Route
+            path="/admin/sales"
+            element={<Navigate to="/admin/finanzas" replace />}
           />
         </Routes>
       </div>

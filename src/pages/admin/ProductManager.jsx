@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabaseClient';
 import { Package, Upload, DollarSign, Tag, Image as ImageIcon, Edit, X, Save, Loader } from 'lucide-react';
+import AdminHeader from '../../components/admin/AdminHeader';
 import './ProductManager.css';
 
 // Componente de Loading Divertido
@@ -293,19 +294,7 @@ export default function ProductManager() {
 
     return (
         <div className="product-manager">
-            <div className="product-header">
-                <div>
-                    <h1>Gestión de Productos</h1>
-                    <p className="user-indicator">
-                        Logueado como: <strong>{user?.email}</strong>
-                    </p>
-                    {dolarOficial && (
-                        <p className="dolar-indicator">
-                            Dólar Oficial: <strong>${dolarOficial}</strong>
-                        </p>
-                    )}
-                </div>
-            </div>
+            <AdminHeader title="Gestión de Productos" />
 
             <div className="product-grid">
                 {/* Formulario CREAR */}

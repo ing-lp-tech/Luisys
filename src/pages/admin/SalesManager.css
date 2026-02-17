@@ -1,33 +1,52 @@
 /* Command Center Layout - Sales Manager */
+/* MOBILE FIRST: Stack everything vertically by default */
 .sales-dashboard {
     display: flex;
     flex-direction: column;
-    gap: 24px;
-    padding: 24px;
+    gap: 16px;
+    padding: 12px;
     font-family: 'Inter', system-ui, sans-serif;
     color: #1e293b;
     background-color: #f1f5f9;
-    min-height: calc(100vh - 80px);
-    /* Adjust based on navbar */
+    min-height: 100vh;
 }
 
+/* Desktop: Switch to horizontal layout */
 @media (min-width: 1024px) {
     .sales-dashboard {
-        flex-direction: row;
+        padding: 24px;
+        gap: 24px;
+    }
+
+    /* Content wrapper for side-by-side layout on desktop */
+    .sales-content-wrapper {
+        display: flex;
+        gap: 24px;
         align-items: flex-start;
     }
 }
 
-/* LEFT PANEL (Control Station) */
+
+/* LEFT PANEL (Control Station) - Mobile First */
 .control-panel {
-    flex: 0 0 400px;
-    /* Fixed width on desktop */
+    width: 100%;
     background: white;
-    border-radius: 16px;
+    border-radius: 12px;
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    padding: 24px;
-    position: sticky;
-    top: 24px;
+    padding: 16px;
+}
+
+@media (min-width: 1024px) {
+    .control-panel {
+        flex: 0 0 400px;
+        /* Fixed width on desktop */
+        border-radius: 16px;
+        padding: 24px;
+        position: sticky;
+        top: 24px;
+        max-height: calc(100vh - 48px);
+        overflow-y: auto;
+    }
 }
 
 .panel-header {
@@ -185,14 +204,19 @@
     color: #475569;
 }
 
-/* RIGHT PANEL (Data View) */
+/* RIGHT PANEL (Data View) - Mobile First */
 .data-panel {
-    flex: 1;
+    width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 24px;
-    width: 100%;
-    /* Ensure full width on mobile */
+    gap: 16px;
+}
+
+@media (min-width: 1024px) {
+    .data-panel {
+        flex: 1;
+        gap: 24px;
+    }
 }
 
 /* KPI Strip */
@@ -352,4 +376,136 @@
 
 .icon-link:hover {
     color: #3b82f6;
+}
+
+/* ============================================
+   ADDITIONAL MOBILE OPTIMIZATIONS
+   ============================================ */
+
+/* Mobile: Additional tweaks */
+@media (max-width: 1023px) {
+
+    /* Panel header more compact */
+    .panel-title {
+        font-size: 1.1rem;
+    }
+
+    /* KPI Strip - Smaller cards on mobile */
+    .kpi-strip {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+    }
+
+    .mini-kpi {
+        padding: 12px;
+        gap: 8px;
+    }
+
+    .kpi-icon-wrap {
+        width: 32px;
+        height: 32px;
+    }
+
+    .kpi-content div:first-child {
+        font-size: 0.7rem;
+    }
+
+    .kpi-content div:last-child {
+        font-size: 1rem;
+    }
+
+    /* Table Toolbar - Stack vertically */
+    .table-toolbar {
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+    }
+
+    .search-box {
+        width: 100%;
+    }
+
+    .search-input {
+        width: 100%;
+    }
+
+    /* Table - Enable horizontal scroll */
+    .table-scroller {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .clean-table {
+        min-width: 700px;
+    }
+
+    .clean-table th,
+    .clean-table td {
+        padding: 10px 12px;
+        font-size: 0.85rem;
+        white-space: nowrap;
+    }
+
+    /* Form inputs optimized for mobile */
+    .cmd-input,
+    .cmd-select {
+        font-size: 16px;
+        /* Prevents iOS zoom */
+    }
+}
+
+/* Extra small screens - Further optimizations */
+@media (max-width: 640px) {
+    .sales-dashboard {
+        padding: 8px;
+        gap: 12px;
+    }
+
+    .control-panel,
+    .table-card {
+        border-radius: 8px;
+        padding: 12px;
+    }
+
+    .clean-table {
+        min-width: 600px;
+    }
+
+    .clean-table th,
+    .clean-table td {
+        padding: 8px 10px;
+        font-size: 0.8rem;
+    }
+
+    .table-title {
+        font-size: 0.9rem;
+    }
+
+    /* Single column KPI on very small screens */
+    .kpi-strip {
+        grid-template-columns: 1fr;
+    }
+
+    .panel-title {
+        font-size: 1rem;
+    }
+}
+
+/* Mobile / Desktop visibility */
+.mobile-only {
+    display: block;
+}
+
+.desktop-only {
+    display: none;
+}
+
+@media (min-width: 1024px) {
+    .mobile-only {
+        display: none;
+    }
+
+    .desktop-only {
+        display: block;
+    }
 }

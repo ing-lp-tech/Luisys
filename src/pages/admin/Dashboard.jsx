@@ -1,33 +1,16 @@
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Package, FileText, BarChart3, Folder, Users } from 'lucide-react';
+import { Package, FileText, BarChart3, Folder, Users } from 'lucide-react';
+import AdminHeader from '../../components/admin/AdminHeader';
 import './Dashboard.css';
 
 export default function Dashboard() {
-    const { user, role, roleError, signOut } = useAuth();
+    const { role } = useAuth();
     const navigate = useNavigate();
-
-    const handleLogout = async () => {
-        await signOut();
-        navigate('/login');
-    };
 
     return (
         <div className="dashboard-container">
-            <header className="dashboard-header">
-                <div>
-                    <h1>Panel de Administración</h1>
-                    <p>
-                        Bienvenido, {user?.email}
-                        <span className="text-xs bg-gray-200 px-2 py-1 rounded ml-2">Rol: {role || 'Ninguno'}</span>
-                        {roleError && <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded ml-2">Error: {roleError}</span>}
-                    </p>
-                </div>
-                <button onClick={handleLogout} className="logout-button">
-                    <LogOut size={18} />
-                    Cerrar Sesión
-                </button>
-            </header>
+            <AdminHeader title="Panel de Administración" />
 
             <div className="dashboard-grid">
                 {(role === 'admin' || role === 'owner') && (
@@ -56,10 +39,10 @@ export default function Dashboard() {
                             <p>Editar imágenes de inicio, logos y "Sobre Mí"</p>
                         </div>
 
-                        <div className="dashboard-card" onClick={() => navigate('/admin/sales')}>
+                        <div className="dashboard-card" onClick={() => navigate('/admin/finanzas')}>
                             <BarChart3 size={32} />
-                            <h2>Administrador de Ventas</h2>
-                            <p>Control de stock, ventas y contratos</p>
+                            <h2>Finanzas</h2>
+                            <p>Gestión completa de finanzas, ventas, gastos y cobros</p>
                         </div>
                     </>
                 )}

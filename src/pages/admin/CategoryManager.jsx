@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { Plus, Edit, Trash2, Save, X, MoveUp, MoveDown } from 'lucide-react';
+import AdminHeader from '../../components/admin/AdminHeader';
 import './CategoryManager.css';
 
 export default function CategoryManager() {
@@ -116,6 +117,7 @@ export default function CategoryManager() {
 
     return (
         <div className="category-manager">
+            <AdminHeader title="Gestión de Categorías" />
             <div className="category-header">
                 <h2>📁 Gestión de Categorías</h2>
                 <button

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
 import { useAuth } from '../../contexts/AuthContext';
+import AdminHeader from '../../components/admin/AdminHeader';
 
 export default function AdminUsers() {
     const [users, setUsers] = useState([]);
@@ -52,6 +53,7 @@ export default function AdminUsers() {
 
     return (
         <div className="p-6">
+            <AdminHeader title="Gestión de Usuarios" />
             <div className="flex justify-between items-center mb-6">
                 <h1 className="text-3xl font-bold">Gestión de Usuarios</h1>
                 <button
