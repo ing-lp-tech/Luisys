@@ -535,10 +535,9 @@ export default function SuppliesPartsTab() {
                             <input
                                 type="number"
                                 step="0.01"
-                                placeholder="Costo unitario ARS *"
+                                placeholder="Costo unitario ARS"
                                 value={form.cost_per_unit_ars}
                                 onChange={e => setForm({ ...form, cost_per_unit_ars: e.target.value })}
-                                required
                             />
                             <input
                                 type="number"
@@ -753,6 +752,7 @@ export default function SuppliesPartsTab() {
                             <thead>
                                 <tr>
                                     <th>Código</th>
+                                    <th style={{ width: '80px', textAlign: 'center' }}>Imagen</th>
                                     <th>Nombre</th>
                                     <th>Categoría</th>
                                     <th>Stock</th>
@@ -767,6 +767,38 @@ export default function SuppliesPartsTab() {
                                 {filteredSupplies.map(item => (
                                     <tr key={item.id} className={isLowStock(item) ? 'low-stock-row' : ''}>
                                         <td>{item.item_code}</td>
+                                        <td style={{ textAlign: 'center', padding: '8px' }}>
+                                            {item.photo_url ? (
+                                                <img
+                                                    src={item.photo_url}
+                                                    alt={item.name}
+                                                    style={{
+                                                        width: '60px',
+                                                        height: '60px',
+                                                        objectFit: 'cover',
+                                                        borderRadius: '8px',
+                                                        border: '1px solid #e2e8f0',
+                                                        cursor: 'pointer'
+                                                    }}
+                                                    onClick={() => window.open(item.photo_url, '_blank')}
+                                                    title="Click para ver en grande"
+                                                />
+                                            ) : (
+                                                <div style={{
+                                                    width: '60px',
+                                                    height: '60px',
+                                                    backgroundColor: '#f1f5f9',
+                                                    borderRadius: '8px',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    color: '#94a3b8',
+                                                    fontSize: '12px'
+                                                }}>
+                                                    Sin imagen
+                                                </div>
+                                            )}
+                                        </td>
                                         <td>
                                             <strong>{item.name}</strong>
                                             {item.description && <br />}
