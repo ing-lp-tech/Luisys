@@ -17,7 +17,7 @@ export default function Dashboard() {
                     <>
                         <div className="dashboard-card" onClick={() => navigate('/admin/products')}>
                             <Package size={32} />
-                            <h2>Gestionar Productos</h2>
+                            <h2>Alta Productos</h2>
                             <p>Agregar, editar y administrar productos</p>
                         </div>
 
@@ -41,7 +41,7 @@ export default function Dashboard() {
 
                         <div className="dashboard-card" onClick={() => navigate('/admin/finanzas')}>
                             <BarChart3 size={32} />
-                            <h2>Finanzas</h2>
+                            <h2>Stock y Finanzas</h2>
                             <p>Gestión completa de finanzas, ventas, gastos y cobros</p>
                         </div>
                     </>

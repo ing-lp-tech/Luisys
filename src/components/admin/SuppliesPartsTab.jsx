@@ -57,6 +57,9 @@ export default function SuppliesPartsTab() {
     const [stockAdjustment, setStockAdjustment] = useState('');
     const [stockOperation, setStockOperation] = useState('add'); // 'add' | 'subtract'
 
+    // Toggle mostrar/ocultar columnas de precios
+    const [showPrices, setShowPrices] = useState(false);
+
     // Cargar datos
     useEffect(() => {
         fetchSupplies();
@@ -383,6 +386,13 @@ export default function SuppliesPartsTab() {
                 >
                     <PlusCircle size={18} />
                     {showForm ? 'Cerrar Formulario' : 'Nuevo Repuesto'}
+                </button>
+                <button
+                    className={`btn-toggle-prices ${showPrices ? 'active' : ''}`}
+                    onClick={() => setShowPrices(!showPrices)}
+                    title={showPrices ? 'Ocultar precios' : 'Mostrar precios'}
+                >
+                    💰 {showPrices ? 'Ocultar Precios' : 'Mostrar Precios'}
                 </button>
             </div>
 
@@ -757,8 +767,8 @@ export default function SuppliesPartsTab() {
                                     <th>Categoría</th>
                                     <th>Stock</th>
                                     <th>Cantidad Comprada</th>
-                                    <th>Precio Unitario (USD)</th>
-                                    <th>Total Compra (USD)</th>
+                                    {showPrices && <th>Precio Unitario (USD)</th>}
+                                    {showPrices && <th>Total Compra (USD)</th>}
                                     <th>Proveedor</th>
                                     <th>Acciones</th>
                                 </tr>
@@ -814,12 +824,16 @@ export default function SuppliesPartsTab() {
                                         <td style={{ fontWeight: '600' }}>
                                             {item.quantity_purchased || 0} uds
                                         </td>
-                                        <td style={{ color: '#0369a1' }}>
-                                            {item.cost_per_unit_usd ? `$${parseFloat(item.cost_per_unit_usd).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
-                                        </td>
-                                        <td style={{ fontWeight: '600', color: '#15803d' }}>
-                                            {item.total_cost_usd ? `$${parseFloat(item.total_cost_usd).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
-                                        </td>
+                                        {showPrices && (
+                                            <td style={{ color: '#0369a1' }}>
+                                                {item.cost_per_unit_usd ? `$${parseFloat(item.cost_per_unit_usd).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
+                                            </td>
+                                        )}
+                                        {showPrices && (
+                                            <td style={{ fontWeight: '600', color: '#15803d' }}>
+                                                {item.total_cost_usd ? `$${parseFloat(item.total_cost_usd).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}
+                                            </td>
+                                        )}
                                         <td>{item.supplier || '-'}</td>
                                         <td className="actions-cell">
                                             <button onClick={() => handleEdit(item)} className="btn-icon" title="Editar">
@@ -835,6 +849,26 @@ export default function SuppliesPartsTab() {
                                     </tr>
                                 ))}
                             </tbody>
+                            {showPrices && (() => {
+                                const totalUnitario = filteredSupplies.reduce((acc, item) => acc + (parseFloat(item.cost_per_unit_usd) || 0), 0);
+                                const totalCompra = filteredSupplies.reduce((acc, item) => acc + (parseFloat(item.total_cost_usd) || 0), 0);
+                                return (
+                                    <tfoot>
+                                        <tr style={{ background: '#f0fdf4', fontWeight: '700', borderTop: '2px solid #86efac' }}>
+                                            <td colSpan={6} style={{ textAlign: 'right', color: '#15803d', padding: '10px 12px' }}>
+                                                💰 TOTAL INVERSIÓN:
+                                            </td>
+                                            <td style={{ color: '#0369a1', padding: '10px 12px' }}>
+                                                ${totalUnitario.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </td>
+                                            <td style={{ color: '#15803d', padding: '10px 12px' }}>
+                                                ${totalCompra.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                            </td>
+                                            <td colSpan={2}></td>
+                                        </tr>
+                                    </tfoot>
+                                );
+                            })()}
                         </table>
                     </div>
                 </>

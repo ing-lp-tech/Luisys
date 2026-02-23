@@ -2,9 +2,90 @@
 .exchange-rate-config {
     background: white;
     border-radius: 12px;
-    padding: 20px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    margin-bottom: 24px;
+    margin-bottom: 16px;
+    overflow: hidden;
+}
+
+/* Barra compacta siempre visible */
+.exchange-compact-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background 0.2s;
+    user-select: none;
+}
+
+.exchange-compact-bar:hover {
+    background: #f8fafc;
+}
+
+.compact-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #334155;
+}
+
+.compact-label {
+    font-size: 13px;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.compact-value {
+    font-size: 15px;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.compact-source {
+    font-size: 12px;
+    padding: 2px 8px;
+    background: #e0f2fe;
+    color: #0369a1;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+.btn-expand {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-expand:hover {
+    background: #e2e8f0;
+}
+
+/* Panel expandido */
+.exchange-panel {
+    border-top: 1px solid #e2e8f0;
+    padding: 16px 20px 20px;
+    animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .exchange-header {

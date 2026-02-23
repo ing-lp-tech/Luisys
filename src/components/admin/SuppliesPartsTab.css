@@ -11,16 +11,21 @@
 /* Header */
 .supplies-header {
     margin-bottom: 15px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
 }
 
 .btn-add-supply {
-    width: 100%;
+    flex: 1;
+    min-width: 160px;
     padding: 12px 16px;
     background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
     color: white;
     border: none;
     border-radius: 8px;
-    font-size: 16px;
+    font-size: 15px;
     font-weight: 600;
     display: flex;
     align-items: center;
@@ -34,6 +39,42 @@
     background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
     transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* Botón toggle precios */
+.btn-toggle-prices {
+    flex: 1;
+    min-width: 160px;
+    padding: 12px 16px;
+    background: #f1f5f9;
+    color: #475569;
+    border: 2px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-toggle-prices:hover {
+    background: #e2e8f0;
+    border-color: #94a3b8;
+}
+
+.btn-toggle-prices.active {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    color: white;
+    border-color: #059669;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.btn-toggle-prices.active:hover {
+    background: linear-gradient(135deg, #059669 0%, #047857 100%);
+    transform: translateY(-1px);
 }
 
 /* Formulario */
