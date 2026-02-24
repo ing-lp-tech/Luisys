@@ -1,6 +1,7 @@
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, Store, ArrowLeft } from 'lucide-react';
+import DarkModeToggle from '../DarkModeToggle';
 import './AdminHeader.css';
 
 export default function AdminHeader({ title, showBackToStore = true }) {
@@ -23,6 +24,7 @@ export default function AdminHeader({ title, showBackToStore = true }) {
                 </p>
             </div>
             <div className="admin-header-buttons">
+                <DarkModeToggle />
                 <button onClick={() => navigate('/admin/dashboard')} className="back-to-store-button" style={{ marginRight: '8px' }}>
                     <ArrowLeft size={18} />
                     Volver al Admin

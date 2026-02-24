@@ -83,3 +83,42 @@
     color: #666;
     font-size: 14px;
 }
+
+/* ===== DARK MODE ===== */
+html.dark .dashboard-container {
+    background: #070b14;
+}
+
+html.dark .dashboard-header {
+    background: #1e293b;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+html.dark .dashboard-header h1 {
+    color: #e2e8f0;
+}
+
+html.dark .dashboard-header p {
+    color: #94a3b8;
+}
+
+html.dark .dashboard-card {
+    background: #1e293b;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+html.dark .dashboard-card:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4);
+}
+
+html.dark .dashboard-card svg {
+    color: #818cf8;
+}
+
+html.dark .dashboard-card h2 {
+    color: #e2e8f0;
+}
+
+html.dark .dashboard-card p {
+    color: #94a3b8;
+}

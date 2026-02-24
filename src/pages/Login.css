@@ -158,3 +158,39 @@
 .login-footer a:hover {
     color: #764ba2;
 }
+
+/* ===== DARK MODE ===== */
+html.dark .login-card {
+    background: #1e293b;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+html.dark .login-header h1 {
+    color: #e2e8f0;
+}
+
+html.dark .login-header p {
+    color: #94a3b8;
+}
+
+html.dark .form-group label {
+    color: #e2e8f0;
+}
+
+html.dark .form-group input {
+    background: #0f172a;
+    border-color: #475569;
+    color: #e2e8f0;
+}
+
+html.dark .form-group input:focus {
+    border-color: #818cf8;
+}
+
+html.dark .login-footer {
+    border-top-color: #334155;
+}
+
+html.dark .login-footer a {
+    color: #818cf8;
+}

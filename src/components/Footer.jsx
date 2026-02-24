@@ -81,11 +81,11 @@ const Footer = ({ id }) => {
   ];
 
   return (
-    <footer id={id} className="mt-20 border-t py-10 border-neutral-700">
+    <footer id={id} className="mt-20 border-t py-10 border-neutral-700 dark:bg-[#070b14] transition-colors duration-300">
       <div className="container mx-auto px-4">
         {/* Sección de redes sociales */}
         <div className="flex flex-col items-center justify-center space-y-6">
-          <h3 className="text-lg font-semibold text-neutral-300">
+          <h3 className="text-lg font-semibold text-neutral-300 dark:text-gray-400">
             Síguenos en nuestras redes
           </h3>
           <div>

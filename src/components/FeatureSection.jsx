@@ -58,7 +58,7 @@ const ProductModal = ({
       case "plotters":
         return (
           <div className="space-y-4">
-            <div className="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+            <div className="flex justify-between items-center p-3 bg-blue-50 dark:bg-indigo-900/30 rounded-lg">
               <div>
                 <p className="font-semibold">Pre-venta (USD):</p>
                 <p>${product.precio_pre_venta.toLocaleString()}</p>
@@ -87,7 +87,7 @@ const ProductModal = ({
               </button>
             </div>
 
-            <div className="flex justify-between items-center p-3 bg-green-50 rounded-lg">
+            <div className="flex justify-between items-center p-3 bg-green-50 dark:bg-emerald-900/30 rounded-lg">
               <div>
                 <p className="font-semibold">Stock actual (USD):</p>
                 <p>${product.precio_de_llegada.toLocaleString()}</p>
@@ -480,14 +480,14 @@ const ProductModal = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white p-4 border-b flex justify-between items-center">
-          <h2 className="text-xl font-bold">
+      <div className="bg-white dark:bg-[#0f172a] rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white dark:bg-[#0f172a] p-4 border-b dark:border-gray-700/50 flex justify-between items-center">
+          <h2 className="text-xl font-bold dark:text-white">
             {product.nombre || product.name}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 p-1 rounded-full hover:bg-gray-100"
+            className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-white p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700"
             aria-label="Cerrar"
           >
             <X size={24} />
@@ -497,7 +497,7 @@ const ProductModal = ({
         <div className="p-6">
           <div className="flex flex-col md:flex-row gap-6">
             <div className="md:w-1/2">
-              <div className="h-64 md:h-96 overflow-hidden rounded-lg bg-gray-100 relative group flex items-center justify-center">
+              <div className="h-64 md:h-96 overflow-hidden rounded-lg bg-gray-100 dark:bg-gray-800 relative group flex items-center justify-center">
 
                 {/* Imagen Principal */}
                 <img
@@ -562,7 +562,7 @@ const ProductModal = ({
             </div>
 
             <div className="md:w-1/2">
-              <p className="text-gray-600 mb-4">
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
                 {product.descripcion || product.description}
               </p>
 
@@ -724,7 +724,7 @@ const ProductSection = ({ id, cart, addToCart }) => {
   };
 
   return (
-    <section id="productos" className="py-6 px-4 md:px-8 bg-gray-50">
+    <section id="productos" className="py-6 px-4 md:px-8 bg-gray-50 dark:bg-[#070b14] transition-colors duration-300">
       {/* Toast Notification */}
       {showToast && (
         <div className="fixed bottom-5 left-1/2 transform -translate-x-1/2 md:left-auto md:translate-x-0 md:right-5 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl z-[9999] flex items-center gap-3 animate-fade-in-up transition-all">
@@ -742,9 +742,9 @@ const ProductSection = ({ id, cart, addToCart }) => {
           <span className="bg-blue-600 text-white rounded-full h-6 text-sm font-medium px-2 py-1 uppercase">
             Catálogo
           </span>
-          <h2 className="text-3xl sm:text-5xl lg:text-6xl mt-10 lg:mt-20 tracking-wide">
+          <h2 className="text-3xl sm:text-5xl lg:text-6xl mt-10 lg:mt-20 tracking-wide dark:text-white">
             Nuestros{" "}
-            <span className="bg-gradient-to-r from-blue-500 to-blue-800 text-transparent bg-clip-text">
+            <span className="bg-gradient-to-r from-blue-500 to-blue-800 dark:from-indigo-400 dark:to-purple-500 text-transparent bg-clip-text">
               Productos
             </span>
           </h2>
@@ -767,7 +767,7 @@ const ProductSection = ({ id, cart, addToCart }) => {
               onClick={() => handleFilterChange("all")}
               className={`flex-shrink-0 snap-start px-5 py-2.5 rounded-full text-sm font-semibold transition shadow-sm whitespace-nowrap ${activeFilter === "all"
                 ? "bg-blue-600 text-white shadow-blue-200"
-                : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                : "bg-white dark:bg-[#0f172a] text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-800"
                 }`}
             >
               Todos
@@ -776,7 +776,7 @@ const ProductSection = ({ id, cart, addToCart }) => {
               onClick={() => handleFilterChange("plotters")}
               className={`flex-shrink-0 snap-start px-5 py-2.5 rounded-full text-sm font-semibold transition shadow-sm whitespace-nowrap ${activeFilter === "plotters"
                 ? "bg-blue-600 text-white shadow-blue-200"
-                : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                : "bg-white dark:bg-[#0f172a] text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-800"
                 }`}
             >
               Plotters
@@ -785,7 +785,7 @@ const ProductSection = ({ id, cart, addToCart }) => {
               onClick={() => handleFilterChange("papers")}
               className={`flex-shrink-0 snap-start px-5 py-2.5 rounded-full text-sm font-semibold transition shadow-sm whitespace-nowrap ${activeFilter === "papers"
                 ? "bg-blue-600 text-white shadow-blue-200"
-                : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                : "bg-white dark:bg-[#0f172a] text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-800"
                 }`}
             >
               Papeles
@@ -794,7 +794,7 @@ const ProductSection = ({ id, cart, addToCart }) => {
               onClick={() => handleFilterChange("pcs")}
               className={`flex-shrink-0 snap-start px-5 py-2.5 rounded-full text-sm font-semibold transition shadow-sm whitespace-nowrap ${activeFilter === "pcs"
                 ? "bg-blue-600 text-white shadow-blue-200"
-                : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                : "bg-white dark:bg-[#0f172a] text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-800"
                 }`}
             >
               PCs Armadas
@@ -803,7 +803,7 @@ const ProductSection = ({ id, cart, addToCart }) => {
               onClick={() => handleFilterChange("kitCameras")}
               className={`flex-shrink-0 snap-start px-5 py-2.5 rounded-full text-sm font-semibold transition shadow-sm whitespace-nowrap ${activeFilter === "kitCameras"
                 ? "bg-blue-600 text-white shadow-blue-200"
-                : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                : "bg-white dark:bg-[#0f172a] text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-800"
                 }`}
             >
               Kits Seguridad
@@ -812,7 +812,7 @@ const ProductSection = ({ id, cart, addToCart }) => {
               onClick={() => handleFilterChange("imouCams")}
               className={`flex-shrink-0 snap-start px-5 py-2.5 rounded-full text-sm font-semibold transition shadow-sm whitespace-nowrap ${activeFilter === "imouCams"
                 ? "bg-blue-600 text-white shadow-blue-200"
-                : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"
+                : "bg-white dark:bg-[#0f172a] text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-800"
                 }`}
             >
               Cámaras WiFi

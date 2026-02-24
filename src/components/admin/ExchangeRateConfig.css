@@ -271,3 +271,90 @@
         justify-content: center;
     }
 }
+
+/* ===== DARK MODE ===== */
+html.dark .exchange-rate-config {
+    background: #1e293b;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+html.dark .exchange-compact-bar:hover {
+    background: #0f172a;
+}
+
+html.dark .compact-left {
+    color: #e2e8f0;
+}
+
+html.dark .compact-label {
+    color: #94a3b8;
+}
+
+html.dark .compact-value {
+    color: #f1f5f9;
+}
+
+html.dark .compact-source {
+    background: rgba(99, 102, 241, 0.2);
+    color: #818cf8;
+}
+
+html.dark .btn-expand {
+    background: #0f172a;
+    border-color: #334155;
+    color: #94a3b8;
+}
+
+html.dark .btn-expand:hover {
+    background: #334155;
+    color: #e2e8f0;
+}
+
+html.dark .exchange-panel {
+    border-top-color: #334155;
+}
+
+html.dark .exchange-header {
+    color: #e2e8f0;
+}
+
+html.dark .exchange-btn {
+    border-color: #334155;
+    background: #0f172a;
+    color: #94a3b8;
+}
+
+html.dark .exchange-btn:hover:not(:disabled) {
+    border-color: #818cf8;
+    color: #818cf8;
+    background: rgba(99, 102, 241, 0.1);
+}
+
+html.dark .exchange-manual {
+    background: rgba(99, 102, 241, 0.08);
+    border-color: #667eea;
+}
+
+html.dark .manual-input {
+    background: #0f172a;
+    border-color: #334155;
+    color: #e2e8f0;
+}
+
+html.dark .manual-input:focus {
+    border-color: #818cf8;
+    box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.15);
+}
+
+html.dark .btn-cancel {
+    background: #334155;
+    color: #94a3b8;
+}
+
+html.dark .btn-cancel:hover {
+    background: #475569;
+}
+
+html.dark .exchange-rate-loading {
+    color: #94a3b8;
+}

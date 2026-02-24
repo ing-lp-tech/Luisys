@@ -12,3 +12,193 @@
 html {
   scroll-behavior: smooth;
 }
+
+/* ===== DARK MODE GLOBAL STYLES ===== */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background-color: #070b14;
+  color: #e2e8f0;
+}
+
+/* Transitions suaves al cambiar de tema */
+body,
+.admin-header,
+.back-to-store-button,
+.logout-button {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Dark mode para contenedores admin comunes */
+html.dark .bg-gray-100 {
+  background-color: #070b14 !important;
+}
+
+html.dark .bg-white {
+  background-color: #1e293b !important;
+}
+
+html.dark .text-gray-800,
+html.dark .text-gray-900 {
+  color: #e2e8f0 !important;
+}
+
+html.dark .text-gray-600,
+html.dark .text-gray-500 {
+  color: #94a3b8 !important;
+}
+
+html.dark .border-gray-200,
+html.dark .border-gray-300 {
+  border-color: #334155 !important;
+}
+
+/* Dark mode para cards, modales y tablas */
+html.dark .shadow-md,
+html.dark .shadow-lg,
+html.dark .shadow-xl {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* Dark mode para inputs */
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background-color: #1e293b;
+  border-color: #475569;
+  color: #e2e8f0;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder {
+  color: #64748b;
+}
+
+html.dark input:focus,
+html.dark select:focus,
+html.dark textarea:focus {
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.25);
+}
+
+/* Dark mode para tablas */
+html.dark table {
+  background-color: #1e293b;
+}
+
+html.dark thead {
+  background-color: #334155;
+}
+
+html.dark th {
+  color: #e2e8f0;
+  border-color: #475569;
+}
+
+html.dark td {
+  border-color: #334155;
+  color: #cbd5e1;
+}
+
+html.dark tbody tr:hover {
+  background-color: #334155;
+}
+
+/* Dark mode para botones genéricos */
+html.dark .bg-blue-600 {
+  background-color: #4f6df5 !important;
+}
+
+html.dark .bg-purple-600 {
+  background-color: #8b5cf6 !important;
+}
+
+html.dark .bg-green-600 {
+  background-color: #059669 !important;
+}
+
+/* Dark mode para el footer */
+html.dark footer {
+  background-color: #0f172a;
+  border-color: #1e293b;
+}
+
+/* Dark mode para modales */
+html.dark .fixed.inset-0>div {
+  background-color: #1e293b;
+}
+
+/* ===== AGGRESSIVE DARK MODE FOR INLINE-STYLED ADMIN COMPONENTS ===== */
+/* SalesHistoryTab and other components use inline background:'white' which
+   has higher specificity than CSS classes. We override with !important. */
+
+/* Mobile cards and desktop table wrappers inside admin tabs */
+html.dark .sales-history-tab div[style*="background: white"],
+html.dark .sales-history-tab div[style*="background:'white'"],
+html.dark .tab-content div[style*="background: white"],
+html.dark .tab-content div[style*="background:'white'"],
+html.dark .sales-dashboard div[style*="background: white"],
+html.dark .sales-dashboard div[style*="background:'white'"] {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+/* Override inline backgrounds on observation/note boxes */
+html.dark .sales-history-tab div[style*="background: #f8fafc"],
+html.dark .tab-content div[style*="background: #f8fafc"] {
+  background: #0f172a !important;
+  color: #94a3b8 !important;
+}
+
+/* Override pending balance indicators */
+html.dark .sales-history-tab div[style*="background: #fef2f2"],
+html.dark .tab-content div[style*="background: #fef2f2"] {
+  background: rgba(239, 68, 68, 0.15) !important;
+}
+
+/* Override paid badges - keep them visible in dark mode */
+html.dark .tab-content div[style*="background: #dcfce7"],
+html.dark .sales-history-tab div[style*="background: #dcfce7"],
+html.dark .sales-dashboard div[style*="background: #dcfce7"] {
+  background: rgba(34, 197, 94, 0.2) !important;
+}
+
+/* Search input inside inline-styled containers */
+html.dark .sales-history-tab input[style],
+html.dark .tab-content input[style] {
+  background: #0f172a !important;
+  border-color: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+/* Modal overlay inside admin sections */
+html.dark .sales-history-tab .fixed div[style*="background: white"],
+html.dark .tab-content .fixed div[style*="background: white"] {
+  background: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+/* Label colors in inline-styled admin components */
+html.dark .sales-history-tab div[style*="color: #64748b"],
+html.dark .tab-content div[style*="color: #64748b"] {
+  color: #94a3b8 !important;
+}
+
+/* Button overrides for close/cancel inside modals */
+html.dark .sales-history-tab button[style*="background: #e2e8f0"],
+html.dark .tab-content button[style*="background: #e2e8f0"] {
+  background: #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+/* Finanzas Module placeholder tabs */
+html.dark .tab-content h3 {
+  color: #e2e8f0;
+}
+
+html.dark .tab-content p {
+  color: #94a3b8;
+}

@@ -107,6 +107,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../contexts/AuthContext";
 import { LogIn, User, LogOut } from "lucide-react";
+import DarkModeToggle from "./DarkModeToggle";
 import { siteConfigService } from "../services/siteConfigService"; // Importar servicio
 
 const Navbar = () => {
@@ -137,7 +138,7 @@ const Navbar = () => {
 
   return (
     <>
-      <nav className="sticky top-0 z-50 py-3 bg-white/70 backdrop-blur-md shadow-md border-b border-neutral-300">
+      <nav className="sticky top-0 z-50 py-3 bg-white/70 dark:bg-[#0a0f1a] backdrop-blur-md shadow-md dark:shadow-[0_1px_20px_rgba(99,102,241,0.08)] border-b border-neutral-300 dark:border-indigo-500/20 transition-colors duration-300">
         <div className="container px-4 mx-auto">
           <div className="flex justify-between items-center">
             <Link to="/">
@@ -149,20 +150,20 @@ const Navbar = () => {
             </Link>
 
             {/* Menú desktop */}
-            <ul className="hidden lg:flex gap-10 font-medium text-neutral-800 items-center">
+            <ul className="hidden lg:flex gap-10 font-medium text-neutral-800 dark:text-gray-200 items-center">
               {navItems.map((item, index) => (
                 <li key={index}>
                   {item.href.startsWith("#") ? (
                     <a
                       href={item.href}
-                      className="hover:text-blue-600 transition-all"
+                      className="hover:text-blue-600 dark:hover:text-indigo-400 transition-all"
                     >
                       {item.label}
                     </a>
                   ) : (
                     <Link
                       to={item.href}
-                      className="hover:text-blue-600 transition-all"
+                      className="hover:text-blue-600 dark:hover:text-indigo-400 transition-all"
                     >
                       {item.label}
                     </Link>
@@ -189,13 +190,18 @@ const Navbar = () => {
                     Login
                   </Link>
                 )}
+              </li>
 
+              {/* Dark Mode Toggle */}
+              <li>
+                <DarkModeToggle />
               </li>
             </ul>
 
             {/* Botón menú móvil */}
-            <div className="lg:hidden">
-              <button onClick={toggleNavbar} aria-label="Toggle Menu" className="p-2 text-neutral-800 hover:text-blue-600 transition-colors">
+            <div className="lg:hidden flex items-center">
+              <DarkModeToggle className="mr-2" />
+              <button onClick={toggleNavbar} aria-label="Toggle Menu" className="p-2 text-neutral-800 dark:text-gray-200 hover:text-blue-600 transition-colors">
                 {mobileDrawerOpen ? <X size={28} /> : <Menu size={28} />}
               </button>
             </div>
@@ -211,7 +217,7 @@ const Navbar = () => {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: "100%" }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="fixed inset-0 bg-blue-600 z-[100] flex flex-col items-center justify-center lg:hidden"
+            className="fixed inset-0 bg-blue-600 dark:bg-gradient-to-b dark:from-[#0a0f1a] dark:to-[#0f172a] z-[100] flex flex-col items-center justify-center lg:hidden"
           >
             <div className="absolute top-4 right-4">
               <button onClick={toggleNavbar} aria-label="Close Menu">

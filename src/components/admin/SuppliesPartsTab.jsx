@@ -721,12 +721,12 @@ export default function SuppliesPartsTab() {
                                         <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '4px' }}>
                                             <strong>{item.quantity_purchased || 0} uds</strong> compradas
                                         </div>
-                                        {item.cost_per_unit_usd && (
+                                        {showPrices && item.cost_per_unit_usd && (
                                             <span className="price-usd">
                                                 ${parseFloat(item.cost_per_unit_usd).toFixed(2)} USD/ud
                                             </span>
                                         )}
-                                        {item.total_cost_usd && (
+                                        {showPrices && item.total_cost_usd && (
                                             <span className="price-total" style={{
                                                 background: '#d1fae5',
                                                 color: '#065f46',

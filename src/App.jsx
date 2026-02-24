@@ -71,6 +71,7 @@ import AppContent from "./AppContent";
 import ChatAudacesWidget from "./components/ChatAudacesWidget";
 import ChatVendedor from "./components/ChatVendedor";
 import { AuthProvider } from "./contexts/AuthContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
 
 
 
@@ -108,15 +109,17 @@ const App = () => {
 
   return (
     <HelmetProvider>
-      <AuthProvider>
-        <Router>
-          <AppWithRouter
-            cart={cart}
-            addToCart={addToCart}
-            removeFromCart={removeFromCart}
-          />
-        </Router>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <Router>
+            <AppWithRouter
+              cart={cart}
+              addToCart={addToCart}
+              removeFromCart={removeFromCart}
+            />
+          </Router>
+        </AuthProvider>
+      </ThemeProvider>
     </HelmetProvider>
   );
 };

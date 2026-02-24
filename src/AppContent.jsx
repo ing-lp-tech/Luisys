@@ -126,7 +126,7 @@ const AppContent = ({ cart, addToCart, removeFromCart }) => {
   return (
     <>
       {!isComunidad && location.pathname !== '/login' && !isAdminRoute && <Navbar />}
-      <div className="max-w-7xl mx-auto pt-0 px-0">
+      <div className="max-w-7xl mx-auto pt-0 px-0 dark:bg-gray-900 dark:text-gray-200 transition-colors duration-300">
         {!isComunidad && location.pathname !== '/login' && !isAdminRoute && <WhatsAppButton />}
 
         <Routes>
@@ -245,11 +245,11 @@ const AppContent = ({ cart, addToCart, removeFromCart }) => {
             path="/admin/site-config"
             element={
               <ProtectedRoute allowedRoles={['admin', 'owner']}>
-                <div className="p-4 md:p-8 bg-gray-100 min-h-screen">
+                <div className="p-4 md:p-8 bg-gray-100 dark:bg-gray-900 min-h-screen transition-colors duration-300">
                   <div className="max-w-7xl mx-auto">
                     <div className="mb-6">
-                      <h1 className="text-3xl font-bold text-gray-800">Editor de Sitio Web</h1>
-                      <p className="text-gray-600">Personaliza las imágenes y textos de tu página principal.</p>
+                      <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-100">Editor de Sitio Web</h1>
+                      <p className="text-gray-600 dark:text-gray-400">Personaliza las imágenes y textos de tu página principal.</p>
                     </div>
                     <SiteConfigEditor />
                   </div>

@@ -1,11 +1,13 @@
 import { motion } from "framer-motion";
 import plotter2 from "../assets/plotter2.jpg";
-import React, { useState, useEffect } from "react"; // Importar useEffect
+import React, { useState, useEffect } from "react";
 import avatarLuisPatty from "../assets/avatarLuisPattyJpg.jpg";
 import llegoIngeJPG from "../assets/llegoIngepng.png";
-import { siteConfigService } from "../services/siteConfigService"; // Importar servicio
+import { siteConfigService } from "../services/siteConfigService";
+import { useTheme } from "../contexts/ThemeContext";
 
 const HeroSection = ({ id, dolarOficial }) => {
+  const { isDark } = useTheme();
   const phoneNumber = "5491162020911";
   const defaultMessage = "Hola, me gustaría obtener más información.";
   const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(
@@ -48,16 +50,23 @@ const HeroSection = ({ id, dolarOficial }) => {
             }}
             style={{ zIndex: 10 }}
           >
-            <p className="text-base sm:text-xl font-semibold text-gray-800 bg-white/50 backdrop-blur-sm p-2 rounded-lg border border-gray-100 shadow-sm inline-block">
+            <p className="text-base sm:text-xl font-semibold text-gray-800 dark:text-gray-100 bg-white/50 dark:bg-white/5 backdrop-blur-md p-3 rounded-xl border border-gray-100 dark:border-gray-700/50 shadow-sm dark:shadow-[0_0_15px_rgba(99,102,241,0.15)] inline-block transition-colors duration-300">
               💵 Cotización dólar oficial{" "}
-              <span className="text-gray-600 block sm:inline">(Banco Nación)</span>:
-              <span className="ml-2 text-blue-600 text-xl sm:text-2xl font-bold">
+              <span className="text-gray-600 dark:text-gray-400 block sm:inline">(Banco Nación)</span>:
+              <span className="ml-2 text-blue-600 dark:text-indigo-400 text-xl sm:text-2xl font-bold">
                 ${dolarOficial}
               </span>
             </p>
           </motion.div>
         )}
-        <div className="bg-gradient-to-b from-blue-50 to-white py-8 px-4 sm:px-6 lg:px-8 w-full">
+        <div className="bg-gradient-to-b from-blue-50 to-white dark:from-[#0f172a] dark:via-[#0f172a] dark:to-[#131b2e] py-8 px-4 sm:px-6 lg:px-8 w-full relative transition-colors duration-300">
+          {/* Sutil glow decorativo en dark mode */}
+          {isDark && (
+            <div className="absolute inset-0 overflow-hidden pointer-events-none">
+              <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-[120px]"></div>
+              <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-purple-600/8 rounded-full blur-[100px]"></div>
+            </div>
+          )}
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col-reverse md:flex-row items-center justify-between gap-8 md:gap-12">
               <div className="w-full md:w-1/2 text-center md:text-left">
@@ -68,12 +77,12 @@ const HeroSection = ({ id, dolarOficial }) => {
                     alt="Logo Hero"
                   />
                 </div>
-                <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 mb-4 sm:mb-6 leading-tight">
+                <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 dark:text-white mb-4 sm:mb-6 leading-tight">
                   Soluciones profesionales para{" "}
-                  <span className="text-blue-600">patronaje digital</span>
+                  <span className="text-blue-600 dark:text-indigo-400">patronaje digital</span>
                 </h1>
 
-                <p className="text-base sm:text-lg text-gray-600 mb-6 sm:mb-8 leading-relaxed max-w-2xl mx-auto md:mx-0">
+                <p className="text-base sm:text-lg text-gray-600 dark:text-gray-400 mb-6 sm:mb-8 leading-relaxed max-w-2xl mx-auto md:mx-0">
                   Equipos y materiales de alta precisión para diseñadores y
                   fabricantes de moda. Maximiza la eficiencia en tu producción
                   con nuestros plotters industriales y papel técnico
@@ -95,7 +104,7 @@ const HeroSection = ({ id, dolarOficial }) => {
 
               {/* Imagen destacada */}
               <div className="w-full md:w-1/2 relative">
-                <div className="relative rounded-2xl overflow-hidden shadow-2xl border-4 border-white">
+                <div className="relative rounded-2xl overflow-hidden shadow-2xl dark:shadow-[0_0_30px_rgba(99,102,241,0.2)] border-4 border-white dark:border-gray-700/50 transition-colors duration-300">
                   <img
                     className="w-full object-cover transform hover:scale-105 transition duration-500"
                     src={heroMainImageUrl} // Dinámico
@@ -116,7 +125,7 @@ const HeroSection = ({ id, dolarOficial }) => {
 
             {/* Logos de marcas o certificaciones */}
             <div className="mt-16 sm:mt-20">
-              <h3 className="text-center text-gray-400 text-sm font-bold tracking-widest mb-8 uppercase">
+              <h3 className="text-center text-gray-400 dark:text-gray-500 text-sm font-bold tracking-widest mb-8 uppercase">
                 TRABAJAMOS CON LAS MEJORES MARCAS
               </h3>
               <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 grayscale opacity-70 hover:grayscale-0 hover:opacity-100 transition-all duration-500">

@@ -467,3 +467,114 @@
 .modal-content::-webkit-scrollbar-thumb:hover {
     background: #555;
 }
+
+/* ===== DARK MODE ===== */
+html.dark .product-manager {
+    background: #070b14;
+}
+
+html.dark .product-header {
+    background: #1e293b;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+html.dark .product-header h1 {
+    color: #f1f5f9;
+}
+
+html.dark .product-form-card,
+html.dark .products-list-card {
+    background: #1e293b;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+html.dark .product-form-card h2,
+html.dark .products-list-card h2 {
+    color: #f1f5f9;
+}
+
+html.dark .form-field label {
+    color: #94a3b8;
+}
+
+html.dark .form-field input,
+html.dark .form-field textarea,
+html.dark .form-field select {
+    background: #0f172a;
+    border-color: #334155;
+    color: #e2e8f0;
+}
+
+html.dark .form-field input:focus,
+html.dark .form-field textarea:focus,
+html.dark .form-field select:focus {
+    border-color: #818cf8;
+}
+
+html.dark .price-preview {
+    background: rgba(99, 102, 241, 0.1);
+    border-color: rgba(99, 102, 241, 0.3);
+    color: #818cf8;
+}
+
+html.dark .file-preview {
+    color: #94a3b8;
+}
+
+html.dark .product-item {
+    border-color: #334155;
+    background: #0f172a;
+}
+
+html.dark .product-item:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+html.dark .product-info h3 {
+    color: #f1f5f9;
+}
+
+html.dark .product-category {
+    color: #94a3b8;
+}
+
+html.dark .modal-content {
+    background: #1e293b;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+html.dark .modal-header {
+    border-bottom-color: #334155;
+}
+
+html.dark .modal-header h2 {
+    color: #f1f5f9;
+}
+
+html.dark .btn-close {
+    color: #94a3b8;
+}
+
+html.dark .btn-close:hover {
+    background: #334155;
+}
+
+html.dark .modal-footer {
+    background: #0f172a;
+    border-top-color: #334155;
+}
+
+html.dark .products-list::-webkit-scrollbar-track,
+html.dark .modal-content::-webkit-scrollbar-track {
+    background: #0f172a;
+}
+
+html.dark .products-list::-webkit-scrollbar-thumb,
+html.dark .modal-content::-webkit-scrollbar-thumb {
+    background: #334155;
+}
+
+html.dark .products-list::-webkit-scrollbar-thumb:hover,
+html.dark .modal-content::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+}

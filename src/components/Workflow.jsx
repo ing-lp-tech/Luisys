@@ -4,15 +4,15 @@ import { checklistItems } from "../constants";
 
 const Workflow = ({ id }) => {
   return (
-    <section id="#como-trabajamos" className="py-8 px-4 md:px-8 bg-gray-50">
+    <section id="#como-trabajamos" className="py-8 px-4 md:px-8 bg-gray-50 dark:bg-[#070b14] transition-colors duration-300">
       <div id={id} className="py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900">
-              Nuestro <span className="text-[rgb(37,99,235)]">Proceso</span> de
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white">
+              Nuestro <span className="text-[rgb(37,99,235)] dark:text-indigo-400">Proceso</span> de
               Trabajo
             </h2>
-            <p className="mt-4 text-lg text-gray-600 max-w-3xl mx-auto">
+            <p className="mt-4 text-lg text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
               Desde tu consulta hasta la entrega de tus insumos para confección,
               te garantizamos:
             </p>
@@ -23,7 +23,7 @@ const Workflow = ({ id }) => {
               <img
                 src={comotrabajamos}
                 alt="Proceso de venta de plotters y papel para confección"
-                className="rounded-xl shadow-lg border-2 border-white"
+                className="rounded-xl shadow-lg dark:shadow-[0_0_25px_rgba(99,102,241,0.15)] border-2 border-white dark:border-gray-700/50"
               />
             </div>
 
@@ -34,21 +34,21 @@ const Workflow = ({ id }) => {
                     <CheckCircle2 className="h-5 w-5" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-1">
+                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">
                       {item.title}
                     </h3>
-                    <p className="text-base text-gray-600 leading-relaxed">
+                    <p className="text-base text-gray-600 dark:text-gray-400 leading-relaxed">
                       {item.description}
                     </p>
                   </div>
                 </div>
               ))}
 
-              <div className="mt-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                <h3 className="text-lg font-bold text-[rgb(37,99,235)] mb-2">
+              <div className="mt-6 bg-white dark:bg-[#0f172a] p-4 rounded-lg shadow-sm dark:shadow-[0_0_15px_rgba(99,102,241,0.1)] border border-gray-200 dark:border-gray-700/50 transition-colors duration-300">
+                <h3 className="text-lg font-bold text-[rgb(37,99,235)] dark:text-indigo-400 mb-2">
                   ¿Por qué elegirnos?
                 </h3>
-                <p className="text-gray-700 text-sm">
+                <p className="text-gray-700 dark:text-gray-400 text-sm">
                   Somos especialistas en insumos para patronaje digital.
                   Ofrecemos plotters de alta precisión y papel técnico
                   específico para tizado en confección de ropa, con

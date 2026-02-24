@@ -90,3 +90,34 @@
 .tab-button.active .tab-badge {
     background: #764ba2;
 }
+
+/* ===== DARK MODE ===== */
+html.dark .finance-tabs {
+    background: #0f172a;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+html.dark .tabs-header {
+    border-bottom-color: #334155;
+    background: #0f172a;
+}
+
+html.dark .tab-button {
+    color: #94a3b8;
+}
+
+html.dark .tab-button:hover {
+    background: #1e293b;
+    color: #cbd5e1;
+}
+
+html.dark .tab-button.active {
+    color: #818cf8;
+    border-bottom-color: #818cf8;
+    background: #1e293b;
+}
+
+html.dark .tab-content {
+    background: #0f172a;
+    color: #e2e8f0;
+}

@@ -46,11 +46,11 @@ const ProductCardSupabase = ({ product, dolarOficial, onAddToCart, onClick }) =>
 
     return (
         <div
-            className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition cursor-pointer flex flex-col h-full"
+            className="bg-white dark:bg-[#0f172a] rounded-xl shadow-md dark:shadow-[0_0_20px_rgba(99,102,241,0.08)] overflow-hidden border border-gray-200 dark:border-gray-700/50 hover:shadow-lg dark:hover:shadow-[0_0_30px_rgba(99,102,241,0.15)] transition cursor-pointer flex flex-col h-full"
             onClick={() => onClick(product)}
         >
             {/* Sección de Imagen con Carrusel */}
-            <div className="h-56 overflow-hidden relative group bg-gray-100 flex items-center justify-center">
+            <div className="h-56 overflow-hidden relative group bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                 <img
                     src={images[currentImageIndex]}
                     alt={product.nombre || product.name || "Producto"}
@@ -88,8 +88,8 @@ const ProductCardSupabase = ({ product, dolarOficial, onAddToCart, onClick }) =>
                                 <div
                                     key={idx}
                                     className={`h-1.5 rounded-full shadow-sm transition-all ${currentImageIndex === idx
-                                            ? "bg-white w-3"
-                                            : "bg-white/50 w-1.5"
+                                        ? "bg-white w-3"
+                                        : "bg-white/50 w-1.5"
                                         }`}
                                 />
                             ))}
@@ -101,17 +101,17 @@ const ProductCardSupabase = ({ product, dolarOficial, onAddToCart, onClick }) =>
             <div className="p-5 flex flex-col flex-grow justify-between">
                 <div>
                     <div className="flex justify-between items-start mb-2 gap-2">
-                        <h3 className="text-lg font-bold text-gray-900 leading-tight">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">
                             {product.nombre || product.name}
                         </h3>
                         {product.categoria && (
-                            <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide whitespace-nowrap">
+                            <span className="bg-blue-100 dark:bg-indigo-900/40 text-blue-800 dark:text-indigo-300 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide whitespace-nowrap">
                                 {product.categoria}
                             </span>
                         )}
                     </div>
 
-                    <p className="text-gray-600 text-sm mb-4 line-clamp-2 min-h-[40px]">
+                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2 min-h-[40px]">
                         {product.descripcion || product.description_short || "Sin descripción disponible."}
                     </p>
                 </div>
@@ -119,15 +119,15 @@ const ProductCardSupabase = ({ product, dolarOficial, onAddToCart, onClick }) =>
                 <div className="space-y-3 mt-auto">
                     {/* Precio Regular */}
                     {(precioUsd || precioArs) && (
-                        <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+                        <div className="p-3 bg-blue-50 dark:bg-indigo-900/30 rounded-lg border border-blue-100 dark:border-indigo-800/40">
                             <div className="flex justify-between items-center mb-1">
-                                <p className="text-xs font-bold text-blue-800 uppercase tracking-wider">Unidad</p>
-                                {precioUsd && <p className="text-lg font-bold text-blue-900">USD {parseFloat(precioUsd).toLocaleString()}</p>}
-                                {!precioUsd && precioArs && <p className="text-lg font-bold text-blue-900">${parseFloat(precioArs).toLocaleString()}</p>}
+                                <p className="text-xs font-bold text-blue-800 dark:text-indigo-300 uppercase tracking-wider">Unidad</p>
+                                {precioUsd && <p className="text-lg font-bold text-blue-900 dark:text-indigo-200">USD {parseFloat(precioUsd).toLocaleString()}</p>}
+                                {!precioUsd && precioArs && <p className="text-lg font-bold text-blue-900 dark:text-indigo-200">${parseFloat(precioArs).toLocaleString()}</p>}
                             </div>
                             {/* Conversión ARS solo si hay precio USD y dolar oficial */}
                             {precioUsd && dolarOficial && (
-                                <p className="text-xs text-blue-600/80 font-medium text-right">
+                                <p className="text-xs text-blue-600/80 dark:text-indigo-400/70 font-medium text-right">
                                     ≈ ARS ${(precioUsd * dolarOficial).toLocaleString()}
                                 </p>
                             )}
@@ -150,14 +150,14 @@ const ProductCardSupabase = ({ product, dolarOficial, onAddToCart, onClick }) =>
 
                     {/* Precio Mayorista */}
                     {(precioMayoristaUsd || precioMayoristaArs) && (
-                        <div className="p-3 bg-green-50 rounded-lg border border-green-100">
+                        <div className="p-3 bg-green-50 dark:bg-emerald-900/30 rounded-lg border border-green-100 dark:border-emerald-800/40">
                             <div className="flex justify-between items-center mb-1">
                                 <div className="flex flex-col">
-                                    <p className="text-xs font-bold text-green-800 uppercase tracking-wider">Mayorista</p>
-                                    <p className="text-[10px] text-green-700 font-medium">Min: {product.cantidad_minima_mayorista || 3}u</p>
+                                    <p className="text-xs font-bold text-green-800 dark:text-emerald-300 uppercase tracking-wider">Mayorista</p>
+                                    <p className="text-[10px] text-green-700 dark:text-emerald-400 font-medium">Min: {product.cantidad_minima_mayorista || 3}u</p>
                                 </div>
-                                {precioMayoristaUsd && <p className="text-lg font-bold text-green-900">USD {parseFloat(precioMayoristaUsd).toLocaleString()}</p>}
-                                {!precioMayoristaUsd && precioMayoristaArs && <p className="text-lg font-bold text-green-900">${parseFloat(precioMayoristaArs).toLocaleString()}</p>}
+                                {precioMayoristaUsd && <p className="text-lg font-bold text-green-900 dark:text-emerald-200">USD {parseFloat(precioMayoristaUsd).toLocaleString()}</p>}
+                                {!precioMayoristaUsd && precioMayoristaArs && <p className="text-lg font-bold text-green-900 dark:text-emerald-200">${parseFloat(precioMayoristaArs).toLocaleString()}</p>}
                             </div>
                             <button
                                 onClick={(e) => onAddToCart({
