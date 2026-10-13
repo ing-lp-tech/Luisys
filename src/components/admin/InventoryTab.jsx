@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
+import { formatMoney, getSaleSummary } from '../../utils/salePayments';
 import { Search, DollarSign, Trash2, X, FileText, Calendar, User, Edit, Package } from 'lucide-react';
 import '../../pages/admin/SalesManager.css';
 
@@ -162,10 +163,7 @@ export default function InventoryTab() {
                     <div className="mobile-only" style={{ display: 'grid', gap: '12px' }}>
                         {filteredItems.map(item => {
                             const isSold = item.status === 'sold';
-                            const salePrice = parseFloat(item.sale_price_ars || 0);
-                            const amountPaid = parseFloat(item.amount_paid_ars || 0);
-                            const balance = salePrice - amountPaid;
-                            const isPaid = item.payment_status === 'paid' || balance <= 0;
+                            const { total: salePrice, paid: amountPaid, balance, isPaid, currency: saleCurrency } = getSaleSummary(item);
 
                             return (
                                 <div
@@ -225,11 +223,11 @@ export default function InventoryTab() {
                                                 <div style={{ fontWeight: '500' }}>{item.sale_date}</div>
                                             </div>
                                         )}
-                                        {isSold && item.sale_price_usd && (
+                                        {isSold && salePrice > 0 && (
                                             <div>
                                                 <div style={{ color: '#64748b', marginBottom: '2px' }}>Precio</div>
                                                 <div style={{ fontWeight: '600', color: '#0369a1' }}>
-                                                    ${formatNumber(item.sale_price_usd)} USD
+                                                    {formatMoney(salePrice, saleCurrency)}
                                                 </div>
                                             </div>
                                         )}
@@ -245,7 +243,7 @@ export default function InventoryTab() {
                                             color: '#dc2626',
                                             fontWeight: '600'
                                         }}>
-                                            Saldo pendiente: ${formatNumber(balance)} ARS
+                                            Saldo pendiente: {formatMoney(balance, saleCurrency)}
                                         </div>
                                     )}
                                 </div>
@@ -275,10 +273,7 @@ export default function InventoryTab() {
                                 <tbody>
                                     {filteredItems.map(item => {
                                         const isSold = item.status === 'sold';
-                                        const salePrice = parseFloat(item.sale_price_ars || 0);
-                                        const amountPaid = parseFloat(item.amount_paid_ars || 0);
-                                        const balance = salePrice - amountPaid;
-                                        const isPaid = item.payment_status === 'paid' || balance <= 0;
+                                        const { total: salePrice, paid: amountPaid, balance, isPaid, currency: saleCurrency } = getSaleSummary(item);
 
                                         return (
                                             <tr
@@ -328,13 +323,13 @@ export default function InventoryTab() {
                                                     {isSold && item.sale_date ? item.sale_date : '-'}
                                                 </td>
                                                 <td>
-                                                    {isSold && item.sale_price_usd ? (
+                                                    {isSold && salePrice > 0 ? (
                                                         <>
                                                             <div style={{ fontWeight: '600', color: '#0369a1' }}>
-                                                                ${formatNumber(item.sale_price_usd)} USD
+                                                                {formatMoney(salePrice, saleCurrency)}
                                                             </div>
                                                             <div style={{ fontSize: '12px', color: '#64748b' }}>
-                                                                ${formatNumber(item.sale_price_ars || 0)} ARS
+                                                                Cobrado {formatMoney(amountPaid, saleCurrency)}
                                                             </div>
                                                             {!isPaid && balance > 0 && (
                                                                 <div style={{
@@ -342,7 +337,7 @@ export default function InventoryTab() {
                                                                     color: '#dc2626',
                                                                     fontWeight: '600'
                                                                 }}>
-                                                                    Saldo: ${formatNumber(balance)}
+                                                                    Saldo: {formatMoney(balance, saleCurrency)}
                                                                 </div>
                                                             )}
                                                         </>
@@ -478,7 +473,7 @@ export default function InventoryTab() {
                                                 <div style={{ fontSize: '14px', fontWeight: '500' }}>{selectedItem.sale_date}</div>
                                             </div>
                                         )}
-                                        {selectedItem.sale_price_usd && (
+                                        {Number(selectedItem.sale_price_usd) > 0 && (
                                             <div>
                                                 <div style={{ fontSize: '12px', color: '#64748b' }}>Precio USD</div>
                                                 <div style={{ fontSize: '18px', fontWeight: '600', color: '#0369a1' }}>
@@ -486,7 +481,7 @@ export default function InventoryTab() {
                                                 </div>
                                             </div>
                                         )}
-                                        {selectedItem.sale_price_ars && (
+                                        {Number(selectedItem.sale_price_ars) > 0 && (
                                             <div>
                                                 <div style={{ fontSize: '12px', color: '#64748b' }}>Precio ARS</div>
                                                 <div style={{ fontSize: '18px', fontWeight: '600', color: '#16a34a' }}>
@@ -509,20 +504,17 @@ export default function InventoryTab() {
                                         <div>
                                             <div style={{ fontSize: '12px', color: '#64748b' }}>Monto pagado</div>
                                             <div style={{ fontSize: '16px', fontWeight: '600', color: '#16a34a' }}>
-                                                ${formatNumber(selectedItem.amount_paid_ars || 0)} ARS
+                                                {formatMoney(getSaleSummary(selectedItem).paid, getSaleSummary(selectedItem).currency)}
                                             </div>
                                         </div>
                                         {(() => {
-                                            const salePrice = parseFloat(selectedItem.sale_price_ars || 0);
-                                            const amountPaid = parseFloat(selectedItem.amount_paid_ars || 0);
-                                            const balance = salePrice - amountPaid;
-                                            const isPaid = selectedItem.payment_status === 'paid' || balance <= 0;
+                                            const { total: salePrice, paid: amountPaid, balance, isPaid, currency: saleCurrency } = getSaleSummary(selectedItem);
 
                                             return balance > 0 && !isPaid ? (
                                                 <div>
                                                     <div style={{ fontSize: '12px', color: '#64748b' }}>Saldo pendiente</div>
                                                     <div style={{ fontSize: '16px', fontWeight: '600', color: '#dc2626' }}>
-                                                        ${formatNumber(balance)} ARS
+                                                        {formatMoney(balance, saleCurrency)}
                                                     </div>
                                                 </div>
                                             ) : (

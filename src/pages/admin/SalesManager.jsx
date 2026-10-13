@@ -1,11 +1,63 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
-import { Package, ShoppingCart, Upload, Search, FileText, LayoutDashboard, PlusCircle, CheckCircle, Smartphone, Edit, Trash2, X, Save } from 'lucide-react';
+import { Package, ShoppingCart, Upload, Search, FileText, LayoutDashboard, PlusCircle, CheckCircle, Smartphone, Edit, Trash2, X, Save, DollarSign } from 'lucide-react';
 import AdminHeader from '../../components/admin/AdminHeader';
 import ExchangeRateConfig from '../../components/admin/ExchangeRateConfig';
 import FinanceTabs from '../../components/admin/FinanceTabs';
+import SalePaymentsModal from '../../components/admin/SalePaymentsModal';
 import { useExchangeRate } from '../../hooks/useExchangeRate';
+import {
+    CURRENCIES,
+    PAYMENT_METHODS,
+    formatMoney,
+    getCostInfo,
+    getSaleSummary,
+    getNextInstallment
+} from '../../utils/salePayments';
 import './SalesManager.css';
+
+const todayISO = () => new Date().toISOString().split('T')[0];
+
+// Botonera ARS / USD reutilizada en compra, venta y edición
+const CurrencyToggle = ({ value, onChange }) => (
+    <div className="currency-toggle">
+        {CURRENCIES.map(c => (
+            <button type="button" key={c} className={value === c ? 'active' : ''} onClick={() => onChange(c)}>
+                {c}
+            </button>
+        ))}
+    </div>
+);
+
+const PaymentBadge = ({ item }) => {
+    const { isPaid, paid } = getSaleSummary(item);
+    if (isPaid) return <span className="pay-badge pay-badge-paid">✓ PAGADO</span>;
+    if (paid > 0) return <span className="pay-badge pay-badge-partial">◐ PARCIAL</span>;
+    return <span className="pay-badge pay-badge-pending">⏱ PENDIENTE</span>;
+};
+
+// Resumen de cobro de una venta: total, cobrado, saldo y próxima cuota
+const PaymentInfo = ({ item }) => {
+    const s = getSaleSummary(item);
+    if (s.total <= 0) return null;
+    const next = getNextInstallment(item);
+    return (
+        <div className="pay-info">
+            <div>
+                💰 {formatMoney(s.paid, s.currency)} / {formatMoney(s.total, s.currency)}
+                {!s.isPaid && <b className="pay-red"> · Saldo {formatMoney(s.balance, s.currency)}</b>}
+            </div>
+            <div className="pay-progress small"><div style={{ width: `${s.progress}%` }} /></div>
+            {s.installmentsCount > 1 && (
+                <div className={next?.state === 'overdue' ? 'pay-red' : ''}>
+                    {next
+                        ? `Cuota ${next.number}/${s.installmentsCount}${next.dueDate ? ` vence ${next.dueDate}` : ''}${next.state === 'overdue' ? ' (VENCIDA)' : ''}`
+                        : `${s.installmentsCount} cuotas pagadas`}
+                </div>
+            )}
+        </div>
+    );
+};
 
 export default function SalesManager({ showHeaderAndExchange = true }) {
     const [mode, setMode] = useState('entry'); // 'entry' | 'sale'
@@ -22,6 +74,7 @@ export default function SalesManager({ showHeaderAndExchange = true }) {
     const [formExpanded, setFormExpanded] = useState(false); // Controla si el formulario está visible en mobile
     const [showDetailModal, setShowDetailModal] = useState(false); // Modal de detalle
     const [selectedItem, setSelectedItem] = useState(null); // Item seleccionado para el modal
+    const [paymentsItem, setPaymentsItem] = useState(null); // Venta cuyo modal de pagos está abierto
 
     // Data
     const [products, setProducts] = useState([]);
@@ -33,25 +86,30 @@ export default function SalesManager({ showHeaderAndExchange = true }) {
         product_id: '',
         serial_number: '',
         model_variant: '',
-        cost_usd: '',
-        cost_ars: '', // NEW
-        purchase_date: new Date().toISOString().split('T')[0]
+        cost_currency: 'USD',
+        cost_amount: '',
+        purchase_date: todayISO()
     });
 
-    const [saleForm, setSaleForm] = useState({
+    const emptySaleForm = () => ({
         filter_product_id: '',
         serial_input: '',
         client_name: '',
-        client_dni: '', // NEW
-        sale_price_usd: '',
-        sale_price_ars: '',
-        sale_date: new Date().toISOString().split('T')[0],
+        client_dni: '',
+        sale_currency: 'USD',
+        sale_price: '',
+        sale_date: todayISO(),
+        payment_mode: 'contado', // 'contado' | 'cuotas'
+        installments_count: '3',
+        first_due_date: todayISO(), // Vencimiento de la 1ra cuota; las demás, mes a mes
+        initial_payment: '', // Lo cobrado en el momento (anticipo o pago total)
+        initial_method: 'Efectivo',
         files: [], // Contratos/documentos
-        observations: '', // NUEVO: Observaciones
-        amount_paid_ars: '', // NUEVO: Monto pagado
-        payment_status: 'pending', // NUEVO: Estado de pago
-        product_images: [] // NUEVO: Imágenes del producto (separado de files)
+        observations: '',
+        product_images: [] // Imágenes del producto (separado de files)
     });
+
+    const [saleForm, setSaleForm] = useState(emptySaleForm);
 
     useEffect(() => {
         fetchInitialData();
@@ -145,18 +203,20 @@ export default function SalesManager({ showHeaderAndExchange = true }) {
         setSubmitting(true);
         try {
             // Use RPC for entries too
+            const cost = cleanNumber(entryForm.cost_amount) || null;
             const { error } = await supabase.rpc('register_entry', {
                 p_product_id: entryForm.product_id,
                 p_serial_number: entryForm.serial_number,
                 p_model_variant: entryForm.model_variant,
-                p_cost_usd: cleanNumber(entryForm.cost_usd),
-                p_cost_ars: cleanNumber(entryForm.cost_ars), // NEW
+                p_cost_currency: entryForm.cost_currency,
+                p_cost_usd: entryForm.cost_currency === 'USD' ? cost : null,
+                p_cost_ars: entryForm.cost_currency === 'ARS' ? cost : null,
                 p_purchase_date: entryForm.purchase_date
             });
 
             if (error) throw error;
             alert('Entrada guardada.');
-            setEntryForm({ ...entryForm, serial_number: '', model_variant: '', cost_usd: '', cost_ars: '' });
+            setEntryForm({ ...entryForm, serial_number: '', model_variant: '', cost_amount: '' });
             fetchInventory();
         } catch (err) { alert(err.message); }
         finally { setSubmitting(false); }
@@ -168,11 +228,14 @@ export default function SalesManager({ showHeaderAndExchange = true }) {
         if (!saleForm.filter_product_id) return alert('Selecciona un producto');
         if (!saleForm.serial_input) return alert('Ingresa o selecciona un número de serie');
 
-        // Validación: El monto pagado no puede ser mayor al precio de venta
-        const salePriceArs = cleanNumber(saleForm.sale_price_ars);
-        const amountPaidArs = cleanNumber(saleForm.amount_paid_ars);
-        if (amountPaidArs > salePriceArs) {
-            return alert('El monto pagado no puede ser mayor al precio de venta');
+        const salePrice = cleanNumber(saleForm.sale_price);
+        const initialPayment = cleanNumber(saleForm.initial_payment);
+        const isInstallments = saleForm.payment_mode === 'cuotas';
+        const installmentsCount = isInstallments ? Math.max(2, parseInt(saleForm.installments_count, 10) || 2) : 1;
+
+        if (salePrice <= 0) return alert('Ingresá el precio de venta');
+        if (initialPayment > salePrice) {
+            return alert('Lo cobrado no puede ser mayor al precio de venta');
         }
 
         // Validación: Máximo 5 imágenes del producto
@@ -226,62 +289,51 @@ export default function SalesManager({ showHeaderAndExchange = true }) {
                 i.serial_number === saleForm.serial_input
             );
 
-            let error;
+            // La venta queda fijada en una sola moneda; la otra columna va en NULL.
+            // amount_paid y payment_status los calcula Supabase a partir de sale_payments.
+            const saleData = {
+                status: 'sold',
+                client_name: saleForm.client_name,
+                client_dni: saleForm.client_dni,
+                sale_currency: saleForm.sale_currency,
+                sale_price_usd: saleForm.sale_currency === 'USD' ? salePrice : null,
+                sale_price_ars: saleForm.sale_currency === 'ARS' ? salePrice : null,
+                sale_date: saleForm.sale_date,
+                installments_count: installmentsCount,
+                installment_amount: Math.round((salePrice / installmentsCount) * 100) / 100,
+                first_due_date: isInstallments ? (saleForm.first_due_date || saleForm.sale_date) : saleForm.sale_date,
+                contract_files: uploadedContractUrls.length > 0 ? uploadedContractUrls : null,
+                observations: saleForm.observations || null,
+                product_images: uploadedImageUrls.length > 0 ? uploadedImageUrls : null
+            };
 
-            if (existingItem) {
-                // UPDATE existing item
-                const { error: updateError } = await supabase.from('inventory_items').update({
-                    status: 'sold',
-                    client_name: saleForm.client_name,
-                    client_dni: saleForm.client_dni,
-                    sale_price_usd: cleanNumber(saleForm.sale_price_usd),
-                    sale_price_ars: salePriceArs,
-                    sale_date: saleForm.sale_date,
-                    contract_files: uploadedContractUrls.length > 0 ? uploadedContractUrls : null,
-                    observations: saleForm.observations || null, // NUEVO
-                    amount_paid_ars: amountPaidArs, // NUEVO
-                    payment_status: saleForm.payment_status, // NUEVO
-                    product_images: uploadedImageUrls.length > 0 ? uploadedImageUrls : null // NUEVO
-                }).eq('id', existingItem.id);
-                error = updateError;
-            } else {
-                // INSERT new item (Sold immediately)
-                const { error: insertError } = await supabase.from('inventory_items').insert({
+            const { data: saved, error } = existingItem
+                ? await supabase.from('inventory_items').update(saleData).eq('id', existingItem.id).select('id').single()
+                : await supabase.from('inventory_items').insert({
+                    ...saleData,
                     product_id: saleForm.filter_product_id,
                     serial_number: saleForm.serial_input,
-                    status: 'sold',
-                    client_name: saleForm.client_name,
-                    client_dni: saleForm.client_dni,
-                    sale_price_usd: cleanNumber(saleForm.sale_price_usd),
-                    sale_price_ars: salePriceArs,
-                    sale_date: saleForm.sale_date,
-                    contract_files: uploadedContractUrls.length > 0 ? uploadedContractUrls : null,
-                    purchase_date: saleForm.sale_date, // Default purchase date to sale date if unknown
-                    observations: saleForm.observations || null, // NUEVO
-                    amount_paid_ars: amountPaidArs, // NUEVO
-                    payment_status: saleForm.payment_status, // NUEVO
-                    product_images: uploadedImageUrls.length > 0 ? uploadedImageUrls : null // NUEVO
-                });
-                error = insertError;
-            }
+                    purchase_date: saleForm.sale_date // Default purchase date to sale date if unknown
+                }).select('id').single();
 
             if (error) throw error;
 
+            // Lo cobrado en el momento queda como primer pago
+            if (initialPayment > 0) {
+                const { error: payError } = await supabase.from('sale_payments').insert({
+                    item_id: saved.id,
+                    installment_number: 1,
+                    payment_date: saleForm.sale_date,
+                    amount: initialPayment,
+                    currency: saleForm.sale_currency,
+                    payment_method: saleForm.initial_method || null,
+                    notes: isInstallments ? 'Pago al momento de la venta' : 'Pago contado'
+                });
+                if (payError) uploadWarning += `\n\n⚠️ La venta se guardó pero el pago no: ${payError.message}`;
+            }
+
             alert('Venta registrada exitosamente.' + uploadWarning);
-            setSaleForm({
-                filter_product_id: '',
-                serial_input: '',
-                client_name: '',
-                client_dni: '',
-                sale_price_usd: '',
-                sale_price_ars: '',
-                sale_date: new Date().toISOString().split('T')[0],
-                files: [],
-                observations: '', // RESET
-                amount_paid_ars: '', // RESET
-                payment_status: 'pending', // RESET
-                product_images: [] // RESET
-            });
+            setSaleForm(emptySaleForm());
             fetchInventory();
         } catch (err) { alert(err.message); }
         finally { setSubmitting(false); }
@@ -323,17 +375,19 @@ export default function SalesManager({ showHeaderAndExchange = true }) {
     };
 
     const handleEditClick = (item) => {
+        const cost = getCostInfo(item);
+        const sale = getSaleSummary(item);
         setEditingItem(item);
         setEditForm({
             ...item,
             product_id: item.product_id,
-            cost_usd: formatNumber(item.cost_usd),
-            cost_ars: formatNumber(item.cost_ars),
-            sale_price_usd: formatNumber(item.sale_price_usd),
-            sale_price_ars: formatNumber(item.sale_price_ars),
-            amount_paid_ars: formatNumber(item.amount_paid_ars), // NUEVO
-            observations: item.observations || '', // NUEVO
-            payment_status: item.payment_status || 'pending', // NUEVO
+            cost_currency: cost.currency,
+            cost_amount: formatNumber(cost.amount),
+            sale_currency: sale.currency,
+            sale_price: formatNumber(sale.total),
+            installments_count: String(sale.installmentsCount),
+            first_due_date: item.first_due_date || item.sale_date || '',
+            observations: item.observations || '',
             newFiles: [], // Initialize for new uploads (contracts)
             newProductImages: [] // NUEVO: para nuevas imágenes del producto
         });
@@ -341,11 +395,14 @@ export default function SalesManager({ showHeaderAndExchange = true }) {
 
     const handleSaveEdit = async () => {
         try {
-            // Validación: El monto pagado no puede ser mayor al precio de venta
-            const salePriceArs = cleanNumber(editForm.sale_price_ars);
-            const amountPaidArs = cleanNumber(editForm.amount_paid_ars);
-            if (amountPaidArs > salePriceArs) {
-                alert('El monto pagado no puede ser mayor al precio de venta');
+            const isSold = editForm.status === 'sold';
+            const cost = cleanNumber(editForm.cost_amount) || null;
+            const salePrice = cleanNumber(editForm.sale_price) || null;
+            const installmentsCount = Math.max(1, parseInt(editForm.installments_count, 10) || 1);
+            const originalSale = getSaleSummary(editingItem);
+            // Los pagos ya convertidos quedarían en la moneda vieja: hay que borrarlos antes de cambiarla
+            if (isSold && editForm.sale_currency !== originalSale.currency && originalSale.paid > 0) {
+                alert('Esta venta ya tiene pagos registrados en ' + originalSale.currency + '. Eliminá esos pagos antes de cambiar la moneda de la venta.');
                 return;
             }
 
@@ -388,19 +445,27 @@ export default function SalesManager({ showHeaderAndExchange = true }) {
             const updates = {
                 serial_number: editForm.serial_number,
                 model_variant: editForm.model_variant,
-                cost_usd: cleanNumber(editForm.cost_usd),
-                cost_ars: cleanNumber(editForm.cost_ars),
+                cost_currency: editForm.cost_currency,
+                cost_usd: editForm.cost_currency === 'USD' ? cost : null,
+                cost_ars: editForm.cost_currency === 'ARS' ? cost : null,
                 client_name: editForm.client_name,
                 client_dni: editForm.client_dni,
-                sale_price_usd: cleanNumber(editForm.sale_price_usd),
-                sale_price_ars: salePriceArs,
                 status: editForm.status,
                 contract_files: finalContractFiles, // Update files list
-                observations: editForm.observations || null, // NUEVO
-                amount_paid_ars: amountPaidArs, // NUEVO
-                payment_status: editForm.payment_status, // NUEVO
-                product_images: finalProductImages.length > 0 ? finalProductImages : null // NUEVO
+                observations: editForm.observations || null,
+                product_images: finalProductImages.length > 0 ? finalProductImages : null
             };
+
+            if (isSold) {
+                Object.assign(updates, {
+                    sale_currency: editForm.sale_currency,
+                    sale_price_usd: editForm.sale_currency === 'USD' ? salePrice : null,
+                    sale_price_ars: editForm.sale_currency === 'ARS' ? salePrice : null,
+                    installments_count: installmentsCount,
+                    installment_amount: salePrice ? Math.round((salePrice / installmentsCount) * 100) / 100 : null,
+                    first_due_date: editForm.first_due_date || editForm.sale_date || null
+                });
+            }
 
             const { error } = await supabase.from('inventory_items').update(updates).eq('id', editingItem.id);
             if (error) throw error;
@@ -490,23 +555,21 @@ export default function SalesManager({ showHeaderAndExchange = true }) {
                                     <input className="cmd-input" placeholder="Modelo 2024" value={entryForm.model_variant} onChange={e => setEntryForm({ ...entryForm, model_variant: e.target.value })} />
                                 </div>
                                 <div className="cmd-group">
-                                    <label className="cmd-label">Costo (USD)</label>
-                                    <input
-                                        className="cmd-input"
-                                        type="text"
-                                        placeholder="0"
-                                        value={entryForm.cost_usd}
-                                        onChange={e => handlePriceChange(e, entryForm, setEntryForm, 'cost_usd')}
+                                    <label className="cmd-label">Moneda de compra</label>
+                                    <CurrencyToggle
+                                        value={entryForm.cost_currency}
+                                        onChange={c => setEntryForm({ ...entryForm, cost_currency: c })}
                                     />
                                 </div>
                                 <div className="cmd-group">
-                                    <label className="cmd-label">Costo (ARS)</label>
+                                    <label className="cmd-label">Costo ({entryForm.cost_currency})</label>
                                     <input
                                         className="cmd-input"
                                         type="text"
+                                        inputMode="numeric"
                                         placeholder="0"
-                                        value={entryForm.cost_ars}
-                                        onChange={e => handlePriceChange(e, entryForm, setEntryForm, 'cost_ars')}
+                                        value={entryForm.cost_amount}
+                                        onChange={e => handlePriceChange(e, entryForm, setEntryForm, 'cost_amount')}
                                     />
                                 </div>
                                 <div className="cmd-group">
@@ -590,81 +653,111 @@ export default function SalesManager({ showHeaderAndExchange = true }) {
                                     />
                                 </div>
 
-                                <div className="cmd-group">
-                                    <label className="cmd-label">Precio Venta (USD)</label>
-                                    <input
-                                        className="cmd-input"
-                                        type="text"
-                                        required placeholder="0"
-                                        value={saleForm.sale_price_usd}
-                                        onChange={e => handlePriceChange(e, saleForm, setSaleForm, 'sale_price_usd')}
-                                    />
-                                </div>
-                                <div className="cmd-group">
-                                    <label className="cmd-label">Precio Venta (ARS)</label>
-                                    <input
-                                        className="cmd-input"
-                                        type="text"
-                                        placeholder="0"
-                                        value={saleForm.sale_price_ars}
-                                        onChange={e => handlePriceChange(e, saleForm, setSaleForm, 'sale_price_ars')}
-                                    />
-                                </div>
-
-                                <div className="cmd-group">
-                                    <label className="cmd-label">Monto Pagado (ARS)</label>
-                                    <input
-                                        className="cmd-input"
-                                        type="text"
-                                        placeholder="0"
-                                        value={saleForm.amount_paid_ars}
-                                        onChange={e => handlePriceChange(e, saleForm, setSaleForm, 'amount_paid_ars')}
-                                    />
-                                </div>
-
-                                {/* Saldo Pendiente - Calculado automáticamente */}
-                                {saleForm.sale_price_ars && (
+                                <div className="row-2">
                                     <div className="cmd-group">
-                                        <label className="cmd-label">Saldo Pendiente (ARS)</label>
+                                        <label className="cmd-label">Moneda de venta</label>
+                                        <CurrencyToggle
+                                            value={saleForm.sale_currency}
+                                            onChange={c => setSaleForm({ ...saleForm, sale_currency: c })}
+                                        />
+                                    </div>
+                                    <div className="cmd-group">
+                                        <label className="cmd-label">Precio total ({saleForm.sale_currency})</label>
                                         <input
                                             className="cmd-input"
                                             type="text"
-                                            readOnly
-                                            value={formatNumber(
-                                                Math.max(0, cleanNumber(saleForm.sale_price_ars) - cleanNumber(saleForm.amount_paid_ars))
-                                            )}
-                                            style={{
-                                                backgroundColor: '#fee2e2',
-                                                color: '#dc2626',
-                                                fontWeight: 600,
-                                                cursor: 'not-allowed'
-                                            }}
+                                            inputMode="numeric"
+                                            required placeholder="0"
+                                            value={saleForm.sale_price}
+                                            onChange={e => handlePriceChange(e, saleForm, setSaleForm, 'sale_price')}
                                         />
                                     </div>
-                                )}
-
-                                {/* Checkbox Pagado */}
-                                <div className="cmd-group">
-                                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                                        <input
-                                            type="checkbox"
-                                            checked={saleForm.payment_status === 'paid'}
-                                            onChange={e => setSaleForm({
-                                                ...saleForm,
-                                                payment_status: e.target.checked ? 'paid' : 'pending'
-                                            })}
-                                            style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                                        />
-                                        <span style={{ fontSize: '0.9rem', color: '#64748b' }}>
-                                            Marcar como <b>PAGADO</b> (sin deuda pendiente)
-                                        </span>
-                                    </label>
                                 </div>
 
                                 <div className="cmd-group">
                                     <label className="cmd-label">Fecha Venta</label>
                                     <input className="cmd-input" type="date" required value={saleForm.sale_date} onChange={e => setSaleForm({ ...saleForm, sale_date: e.target.value })} />
                                 </div>
+
+                                <div className="cmd-group">
+                                    <label className="cmd-label">Forma de pago</label>
+                                    <div className="currency-toggle">
+                                        <button type="button" className={saleForm.payment_mode === 'contado' ? 'active' : ''}
+                                            onClick={() => setSaleForm({ ...saleForm, payment_mode: 'contado' })}>Contado</button>
+                                        <button type="button" className={saleForm.payment_mode === 'cuotas' ? 'active' : ''}
+                                            onClick={() => setSaleForm({ ...saleForm, payment_mode: 'cuotas' })}>En cuotas</button>
+                                    </div>
+                                </div>
+
+                                {saleForm.payment_mode === 'cuotas' && (
+                                    <div className="row-2">
+                                        <div className="cmd-group">
+                                            <label className="cmd-label">Cantidad de cuotas</label>
+                                            <input
+                                                className="cmd-input"
+                                                type="number"
+                                                min="2"
+                                                value={saleForm.installments_count}
+                                                onChange={e => setSaleForm({ ...saleForm, installments_count: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="cmd-group">
+                                            <label className="cmd-label">Vence 1ra cuota</label>
+                                            <input
+                                                className="cmd-input"
+                                                type="date"
+                                                value={saleForm.first_due_date}
+                                                onChange={e => setSaleForm({ ...saleForm, first_due_date: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+                                {saleForm.payment_mode === 'cuotas' && cleanNumber(saleForm.sale_price) > 0 && (
+                                    <small className="pay-hint">
+                                        {Math.max(2, parseInt(saleForm.installments_count, 10) || 2)} cuotas de{' '}
+                                        {formatMoney(cleanNumber(saleForm.sale_price) / Math.max(2, parseInt(saleForm.installments_count, 10) || 2), saleForm.sale_currency)}
+                                        {' '}· las siguientes vencen mes a mes
+                                    </small>
+                                )}
+
+                                <div className="row-2">
+                                    <div className="cmd-group">
+                                        <label className="cmd-label">
+                                            {saleForm.payment_mode === 'cuotas' ? 'Cobrado hoy (anticipo / 1ra cuota)' : 'Cobrado hoy'} ({saleForm.sale_currency})
+                                        </label>
+                                        <div style={{ display: 'flex', gap: 6 }}>
+                                            <input
+                                                className="cmd-input"
+                                                type="text"
+                                                inputMode="numeric"
+                                                placeholder="0"
+                                                value={saleForm.initial_payment}
+                                                onChange={e => handlePriceChange(e, saleForm, setSaleForm, 'initial_payment')}
+                                            />
+                                            {saleForm.payment_mode === 'contado' && saleForm.sale_price && (
+                                                <button type="button" className="cmd-btn pay-fill-btn"
+                                                    onClick={() => setSaleForm({ ...saleForm, initial_payment: saleForm.sale_price })}>
+                                                    Total
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="cmd-group">
+                                        <label className="cmd-label">Método</label>
+                                        <select className="cmd-select" value={saleForm.initial_method}
+                                            onChange={e => setSaleForm({ ...saleForm, initial_method: e.target.value })}>
+                                            {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
+                                        </select>
+                                    </div>
+                                </div>
+
+                                {cleanNumber(saleForm.sale_price) > 0 && (
+                                    <small className="pay-hint">
+                                        Saldo a cobrar: <b className="pay-red">
+                                            {formatMoney(Math.max(0, cleanNumber(saleForm.sale_price) - cleanNumber(saleForm.initial_payment)), saleForm.sale_currency)}
+                                        </b>. Los próximos pagos se cargan desde el botón <DollarSign size={12} /> de la venta.
+                                    </small>
+                                )}
 
                                 {/* Imágenes del Producto - NUEVO */}
                                 <div className="cmd-group">
@@ -844,132 +937,64 @@ export default function SalesManager({ showHeaderAndExchange = true }) {
                                                     <span>{item.serial_number}</span>
                                                     {viewMode === 'stock' && item.status === 'sold' && (
                                                         <>
-                                                            <span style={{
-                                                                backgroundColor: '#fee2e2',
-                                                                color: '#dc2626',
-                                                                padding: '2px 8px',
-                                                                borderRadius: '4px',
-                                                                fontSize: '0.7rem',
-                                                                fontWeight: 600,
-                                                                fontFamily: 'system-ui'
-                                                            }}>
-                                                                VENDIDO
-                                                            </span>
-                                                            {/* Badge de estado de pago */}
-                                                            {item.payment_status === 'paid' ? (
-                                                                <span style={{
-                                                                    backgroundColor: '#dcfce7',
-                                                                    color: '#16a34a',
-                                                                    padding: '2px 8px',
-                                                                    borderRadius: '4px',
-                                                                    fontSize: '0.7rem',
-                                                                    fontWeight: 600,
-                                                                    fontFamily: 'system-ui'
-                                                                }}>
-                                                                    ✓ PAGADO
-                                                                </span>
-                                                            ) : (
-                                                                <span style={{
-                                                                    backgroundColor: '#fef9c3',
-                                                                    color: '#ca8a04',
-                                                                    padding: '2px 8px',
-                                                                    borderRadius: '4px',
-                                                                    fontSize: '0.7rem',
-                                                                    fontWeight: 600,
-                                                                    fontFamily: 'system-ui'
-                                                                }}>
-                                                                    ⏱ PENDIENTE
-                                                                </span>
-                                                            )}
+                                                            <span className="pay-badge pay-badge-sold">VENDIDO</span>
+                                                            <PaymentBadge item={item} />
                                                         </>
                                                     )}
                                                 </div>
                                             </td>
                                             <td>
-                                                {item.status === 'available' ? (
-                                                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                                                        Compra: {item.purchase_date} <br />
-                                                        Costo: ${item.cost_usd || 0} USD
-                                                        {item.observations && (
-                                                            <>
-                                                                <br />
-                                                                <span style={{ fontStyle: 'italic', fontSize: '0.75rem' }}>
-                                                                    💬 {item.observations.substring(0, 50)}{item.observations.length > 50 ? '...' : ''}
-                                                                </span>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                ) : (
-                                                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                                                        Compra: {item.purchase_date} <br />
-                                                        Costo: ${item.cost_usd || 0} USD
-                                                        {viewMode === 'stock' && (
-                                                            <>
-                                                                <br />
-                                                                <span style={{ color: '#dc2626', fontWeight: 600 }}>
-                                                                    Vendido a: {item.client_name}
-                                                                </span>
-                                                                <br />
-                                                                {/* Información de pago */}
-                                                                {item.sale_price_ars && (
-                                                                    <span style={{ fontSize: '0.75rem' }}>
-                                                                        💰 Pagado: ${formatNumber(item.amount_paid_ars || 0)} / ${formatNumber(item.sale_price_ars)}
-                                                                        {item.payment_status !== 'paid' && item.sale_price_ars > (item.amount_paid_ars || 0) && (
-                                                                            <span style={{ color: '#dc2626', fontWeight: 600 }}>
-                                                                                {' '}(Saldo: ${formatNumber(item.sale_price_ars - (item.amount_paid_ars || 0))})
-                                                                            </span>
-                                                                        )}
-                                                                    </span>
-                                                                )}
-                                                                {item.observations && (
-                                                                    <>
-                                                                        <br />
-                                                                        <span style={{ fontStyle: 'italic', fontSize: '0.75rem' }}>
-                                                                            💬 {item.observations.substring(0, 40)}{item.observations.length > 40 ? '...' : ''}
+                                                {(() => {
+                                                    const cost = getCostInfo(item);
+                                                    return (
+                                                        <div style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                                                            Compra: {item.purchase_date} <br />
+                                                            Costo: {cost.amount > 0 ? formatMoney(cost.amount, cost.currency) : '—'}
+                                                            {item.status === 'sold' && (
+                                                                <>
+                                                                    <br />
+                                                                    {viewMode === 'stock' ? (
+                                                                        <span style={{ color: '#dc2626', fontWeight: 600 }}>
+                                                                            Vendido a: {item.client_name}
                                                                         </span>
-                                                                    </>
-                                                                )}
-                                                            </>
-                                                        )}
-                                                        {viewMode === 'sold' && (
-                                                            <>
-                                                                Cliente: <b>{item.client_name}</b> <br />
-                                                                {item.client_dni && <span>DNI: {item.client_dni}</span>}
-                                                                <br />
-                                                                {/* Información de pago */}
-                                                                {item.sale_price_ars && (
-                                                                    <span style={{ fontSize: '0.75rem' }}>
-                                                                        💰 Pagado: ${formatNumber(item.amount_paid_ars || 0)} / ${formatNumber(item.sale_price_ars)}
-                                                                        {item.payment_status !== 'paid' && item.sale_price_ars > (item.amount_paid_ars || 0) && (
-                                                                            <span style={{ color: '#dc2626', fontWeight: 600 }}>
-                                                                                {' '}(Saldo: ${formatNumber(item.sale_price_ars - (item.amount_paid_ars || 0))})
-                                                                            </span>
-                                                                        )}
+                                                                    ) : (
+                                                                        <>
+                                                                            Cliente: <b>{item.client_name}</b>
+                                                                            {item.client_dni && <><br />DNI: {item.client_dni}</>}
+                                                                        </>
+                                                                    )}
+                                                                    <PaymentInfo item={item} />
+                                                                </>
+                                                            )}
+                                                            {item.observations && (
+                                                                <>
+                                                                    <br />
+                                                                    <span style={{ fontStyle: 'italic', fontSize: '0.75rem' }}>
+                                                                        💬 {item.observations.substring(0, 50)}{item.observations.length > 50 ? '...' : ''}
                                                                     </span>
-                                                                )}
-                                                                {item.observations && (
-                                                                    <>
-                                                                        <br />
-                                                                        <span style={{ fontStyle: 'italic', fontSize: '0.75rem' }}>
-                                                                            💬 {item.observations.substring(0, 50)}{item.observations.length > 50 ? '...' : ''}
-                                                                        </span>
-                                                                    </>
-                                                                )}
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                )}
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })()}
                                             </td>
                                             {viewMode === 'sold' && (
                                                 <td>
                                                     <div style={{ fontSize: '0.8rem' }}>
                                                         {item.sale_date} <br />
-                                                        <span style={{ color: '#16a34a' }}>${item.sale_price_usd} USD</span>
+                                                        <span style={{ color: '#16a34a' }}>
+                                                            {formatMoney(getSaleSummary(item).total, getSaleSummary(item).currency)}
+                                                        </span>
                                                     </div>
                                                 </td>
                                             )}
                                             <td>
                                                 <div style={{ display: 'flex', gap: 8 }}>
+                                                    {item.status === 'sold' && (
+                                                        <button className="icon-btn pay-btn" onClick={() => setPaymentsItem(item)} title="Pagos / cuotas">
+                                                            <DollarSign size={16} />
+                                                        </button>
+                                                    )}
                                                     <button className="icon-btn edit-btn" onClick={() => handleEditClick(item)} title="Editar">
                                                         <Edit size={16} />
                                                     </button>
@@ -1012,21 +1037,20 @@ export default function SalesManager({ showHeaderAndExchange = true }) {
 
                             <div className="row-2">
                                 <div className="cmd-group">
-                                    <label className="cmd-label">Costo USD</label>
-                                    <input
-                                        className="cmd-input"
-                                        type="text"
-                                        value={editForm.cost_usd || 0}
-                                        onChange={e => handlePriceChange(e, editForm, setEditForm, 'cost_usd')}
+                                    <label className="cmd-label">Moneda de compra</label>
+                                    <CurrencyToggle
+                                        value={editForm.cost_currency}
+                                        onChange={c => setEditForm({ ...editForm, cost_currency: c })}
                                     />
                                 </div>
                                 <div className="cmd-group">
-                                    <label className="cmd-label">Costo ARS</label>
+                                    <label className="cmd-label">Costo ({editForm.cost_currency})</label>
                                     <input
                                         className="cmd-input"
                                         type="text"
-                                        value={editForm.cost_ars || 0}
-                                        onChange={e => handlePriceChange(e, editForm, setEditForm, 'cost_ars')}
+                                        inputMode="numeric"
+                                        value={editForm.cost_amount || ''}
+                                        onChange={e => handlePriceChange(e, editForm, setEditForm, 'cost_amount')}
                                     />
                                 </div>
                             </div>
@@ -1047,26 +1071,46 @@ export default function SalesManager({ showHeaderAndExchange = true }) {
 
                                     <div className="row-2">
                                         <div className="cmd-group">
-                                            <label className="cmd-label">Venta USD</label>
-                                            <input
-                                                className="cmd-input"
-                                                type="text"
-                                                value={editForm.sale_price_usd || 0}
-                                                onChange={e => handlePriceChange(e, editForm, setEditForm, 'sale_price_usd')}
+                                            <label className="cmd-label">Moneda de venta</label>
+                                            <CurrencyToggle
+                                                value={editForm.sale_currency}
+                                                onChange={c => setEditForm({ ...editForm, sale_currency: c })}
                                             />
                                         </div>
                                         <div className="cmd-group">
-                                            <label className="cmd-label">Venta ARS</label>
+                                            <label className="cmd-label">Precio total ({editForm.sale_currency})</label>
                                             <input
                                                 className="cmd-input"
                                                 type="text"
-                                                value={editForm.sale_price_ars || 0}
-                                                onChange={e => handlePriceChange(e, editForm, setEditForm, 'sale_price_ars')}
+                                                inputMode="numeric"
+                                                value={editForm.sale_price || ''}
+                                                onChange={e => handlePriceChange(e, editForm, setEditForm, 'sale_price')}
                                             />
                                         </div>
                                     </div>
 
-                                    {/* NUEVOS CAMPOS DE PAGO Y OBSERVACIONES */}
+                                    <div className="row-2">
+                                        <div className="cmd-group">
+                                            <label className="cmd-label">Cuotas (1 = contado)</label>
+                                            <input
+                                                className="cmd-input"
+                                                type="number"
+                                                min="1"
+                                                value={editForm.installments_count || '1'}
+                                                onChange={e => setEditForm({ ...editForm, installments_count: e.target.value })}
+                                            />
+                                        </div>
+                                        <div className="cmd-group">
+                                            <label className="cmd-label">Vence 1ra cuota</label>
+                                            <input
+                                                className="cmd-input"
+                                                type="date"
+                                                value={editForm.first_due_date || ''}
+                                                onChange={e => setEditForm({ ...editForm, first_due_date: e.target.value })}
+                                            />
+                                        </div>
+                                    </div>
+
                                     <div className="cmd-group">
                                         <label className="cmd-label">Observaciones</label>
                                         <textarea
@@ -1079,53 +1123,16 @@ export default function SalesManager({ showHeaderAndExchange = true }) {
                                         />
                                     </div>
 
-                                    <div className="cmd-group">
-                                        <label className="cmd-label">Monto Pagado (ARS)</label>
-                                        <input
-                                            className="cmd-input"
-                                            type="text"
-                                            value={editForm.amount_paid_ars || 0}
-                                            onChange={e => handlePriceChange(e, editForm, setEditForm, 'amount_paid_ars')}
-                                        />
-                                    </div>
-
-                                    {/* Saldo Pendiente Calculado */}
-                                    {editForm.sale_price_ars && (
-                                        <div className="cmd-group">
-                                            <label className="cmd-label">Saldo Pendiente (ARS)</label>
-                                            <input
-                                                className="cmd-input"
-                                                type="text"
-                                                readOnly
-                                                value={formatNumber(
-                                                    Math.max(0, cleanNumber(editForm.sale_price_ars) - cleanNumber(editForm.amount_paid_ars))
-                                                )}
-                                                style={{
-                                                    backgroundColor: '#fee2e2',
-                                                    color: '#dc2626',
-                                                    fontWeight: 600,
-                                                    cursor: 'not-allowed'
-                                                }}
-                                            />
-                                        </div>
-                                    )}
-
-                                    {/* Checkbox Estado de Pago */}
-                                    <div className="cmd-group">
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                                            <input
-                                                type="checkbox"
-                                                checked={editForm.payment_status === 'paid'}
-                                                onChange={e => setEditForm({
-                                                    ...editForm,
-                                                    payment_status: e.target.checked ? 'paid' : 'pending'
-                                                })}
-                                                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                                            />
-                                            <span style={{ fontSize: '0.9rem', color: '#64748b' }}>
-                                                Marcar como <b>PAGADO</b>
-                                            </span>
-                                        </label>
+                                    {/* Los cobros se cargan pago por pago en el modal de pagos */}
+                                    <div className="pay-edit-box">
+                                        <PaymentInfo item={editingItem} />
+                                        <button
+                                            type="button"
+                                            className="cmd-btn btn-success"
+                                            onClick={() => { setPaymentsItem(editingItem); setEditingItem(null); }}
+                                        >
+                                            <DollarSign size={16} style={{ marginRight: 4 }} /> Ver / registrar pagos
+                                        </button>
                                     </div>
 
                                     {/* Imágenes del Producto */}
@@ -1454,19 +1461,11 @@ export default function SalesManager({ showHeaderAndExchange = true }) {
                                             <div style={{ fontSize: '14px', fontWeight: '500' }}>{selectedItem.purchase_date}</div>
                                         </div>
                                     )}
-                                    {selectedItem.cost_usd && (
+                                    {getCostInfo(selectedItem).amount > 0 && (
                                         <div>
-                                            <div style={{ fontSize: '12px', color: '#64748b' }}>Costo USD</div>
+                                            <div style={{ fontSize: '12px', color: '#64748b' }}>Costo ({getCostInfo(selectedItem).currency})</div>
                                             <div style={{ fontSize: '16px', fontWeight: '600', color: '#0369a1' }}>
-                                                ${formatNumber(selectedItem.cost_usd)}
-                                            </div>
-                                        </div>
-                                    )}
-                                    {selectedItem.cost_ars && (
-                                        <div>
-                                            <div style={{ fontSize: '12px', color: '#64748b' }}>Costo ARS</div>
-                                            <div style={{ fontSize: '16px', fontWeight: '600', color: '#16a34a' }}>
-                                                ${formatNumber(selectedItem.cost_ars)}
+                                                {formatMoney(getCostInfo(selectedItem).amount, getCostInfo(selectedItem).currency)}
                                             </div>
                                         </div>
                                     )}
@@ -1503,19 +1502,11 @@ export default function SalesManager({ showHeaderAndExchange = true }) {
                                                 <div style={{ fontSize: '14px', fontWeight: '500' }}>{selectedItem.sale_date}</div>
                                             </div>
                                         )}
-                                        {selectedItem.sale_price_usd && (
+                                        {getSaleSummary(selectedItem).total > 0 && (
                                             <div>
-                                                <div style={{ fontSize: '12px', color: '#64748b' }}>Precio USD</div>
+                                                <div style={{ fontSize: '12px', color: '#64748b' }}>Precio ({getSaleSummary(selectedItem).currency})</div>
                                                 <div style={{ fontSize: '18px', fontWeight: '600', color: '#0369a1' }}>
-                                                    ${formatNumber(selectedItem.sale_price_usd)}
-                                                </div>
-                                            </div>
-                                        )}
-                                        {selectedItem.sale_price_ars && (
-                                            <div>
-                                                <div style={{ fontSize: '12px', color: '#64748b' }}>Precio ARS</div>
-                                                <div style={{ fontSize: '18px', fontWeight: '600', color: '#16a34a' }}>
-                                                    ${formatNumber(selectedItem.sale_price_ars)}
+                                                    {formatMoney(getSaleSummary(selectedItem).total, getSaleSummary(selectedItem).currency)}
                                                 </div>
                                             </div>
                                         )}
@@ -1524,45 +1515,19 @@ export default function SalesManager({ showHeaderAndExchange = true }) {
                             )}
 
                             {/* Payment Info (if sold) */}
-                            {selectedItem.status === 'sold' && selectedItem.sale_price_ars && (
+                            {selectedItem.status === 'sold' && getSaleSummary(selectedItem).total > 0 && (
                                 <div style={{ marginBottom: '24px' }}>
                                     <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '8px', textTransform: 'uppercase', fontWeight: '600' }}>
                                         Estado de Pago
                                     </div>
-                                    <div style={{ display: 'grid', gap: '12px' }}>
-                                        <div>
-                                            <div style={{ fontSize: '12px', color: '#64748b' }}>Monto pagado</div>
-                                            <div style={{ fontSize: '16px', fontWeight: '600', color: '#16a34a' }}>
-                                                ${formatNumber(selectedItem.amount_paid_ars || 0)} ARS
-                                            </div>
-                                        </div>
-                                        {(() => {
-                                            const salePrice = parseFloat(selectedItem.sale_price_ars || 0);
-                                            const amountPaid = parseFloat(selectedItem.amount_paid_ars || 0);
-                                            const balance = salePrice - amountPaid;
-                                            const isPaid = selectedItem.payment_status === 'paid' || balance <= 0;
-
-                                            return balance > 0 && !isPaid ? (
-                                                <div>
-                                                    <div style={{ fontSize: '12px', color: '#64748b' }}>Saldo pendiente</div>
-                                                    <div style={{ fontSize: '16px', fontWeight: '600', color: '#dc2626' }}>
-                                                        ${formatNumber(balance)} ARS
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div style={{
-                                                    padding: '12px',
-                                                    background: '#dcfce7',
-                                                    borderRadius: '8px',
-                                                    color: '#16a34a',
-                                                    fontWeight: '600',
-                                                    textAlign: 'center'
-                                                }}>
-                                                    ✓ Pago completo
-                                                </div>
-                                            );
-                                        })()}
-                                    </div>
+                                    <PaymentInfo item={selectedItem} />
+                                    <button
+                                        className="cmd-btn btn-success"
+                                        style={{ marginTop: 10, width: '100%' }}
+                                        onClick={() => { setShowDetailModal(false); setPaymentsItem(selectedItem); }}
+                                    >
+                                        <DollarSign size={16} style={{ marginRight: 4 }} /> Ver / registrar pagos
+                                    </button>
                                 </div>
                             )}
 
@@ -1654,6 +1619,15 @@ export default function SalesManager({ showHeaderAndExchange = true }) {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* Modal de pagos / cuotas */}
+            {paymentsItem && (
+                <SalePaymentsModal
+                    item={paymentsItem}
+                    onClose={() => setPaymentsItem(null)}
+                    onChanged={fetchInventory}
+                />
             )}
         </div >
     );

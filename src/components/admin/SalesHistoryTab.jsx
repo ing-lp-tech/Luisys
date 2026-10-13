@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
+import { formatMoney, getSaleSummary } from '../../utils/salePayments';
 import { Search, Edit, Trash2, DollarSign, X, FileText, Calendar, User } from 'lucide-react';
 import '../../pages/admin/SalesManager.css';
 
@@ -68,6 +69,12 @@ export default function SalesHistoryTab() {
         );
     });
 
+    // Suma de cobrado/saldo por moneda de venta
+    const totalBy = (field, currency) => filteredSales.reduce((sum, s) => {
+        const summary = getSaleSummary(s);
+        return summary.currency === currency ? sum + summary[field] : sum;
+    }, 0);
+
     if (loading) {
         return <div style={{ padding: '40px', textAlign: 'center' }}>Cargando ventas...</div>;
     }
@@ -133,10 +140,7 @@ export default function SalesHistoryTab() {
                     {/* Mobile Cards */}
                     <div className="mobile-only" style={{ display: 'grid', gap: '12px' }}>
                         {filteredSales.map(item => {
-                            const salePrice = parseFloat(item.sale_price_ars || 0);
-                            const amountPaid = parseFloat(item.amount_paid_ars || 0);
-                            const balance = salePrice - amountPaid;
-                            const isPaid = item.payment_status === 'paid' || balance <= 0;
+                            const { total: salePrice, paid: amountPaid, balance, isPaid, currency: saleCurrency } = getSaleSummary(item);
 
                             return (
                                 <div
@@ -189,13 +193,13 @@ export default function SalesHistoryTab() {
                                         <div>
                                             <div style={{ color: '#64748b', marginBottom: '2px' }}>Precio</div>
                                             <div style={{ fontWeight: '600', color: '#0369a1' }}>
-                                                ${formatNumber(item.sale_price_usd || 0)} USD
+                                                {formatMoney(salePrice, saleCurrency)}
                                             </div>
                                         </div>
                                         <div>
                                             <div style={{ color: '#64748b', marginBottom: '2px' }}>Cobrado</div>
                                             <div style={{ fontWeight: '600', color: isPaid ? '#16a34a' : '#ca8a04' }}>
-                                                ${formatNumber(amountPaid)}
+                                                {formatMoney(amountPaid, saleCurrency)}
                                             </div>
                                         </div>
                                     </div>
@@ -210,7 +214,7 @@ export default function SalesHistoryTab() {
                                             color: '#dc2626',
                                             fontWeight: '600'
                                         }}>
-                                            Saldo pendiente: ${formatNumber(balance)} ARS
+                                            Saldo pendiente: {formatMoney(balance, saleCurrency)}
                                         </div>
                                     )}
                                 </div>
@@ -240,10 +244,7 @@ export default function SalesHistoryTab() {
                                 </thead>
                                 <tbody>
                                     {filteredSales.map(item => {
-                                        const salePrice = parseFloat(item.sale_price_ars || 0);
-                                        const amountPaid = parseFloat(item.amount_paid_ars || 0);
-                                        const balance = salePrice - amountPaid;
-                                        const isPaid = item.payment_status === 'paid' || balance <= 0;
+                                        const { total: salePrice, paid: amountPaid, balance, isPaid, currency: saleCurrency } = getSaleSummary(item);
 
                                         return (
                                             <tr
@@ -275,15 +276,15 @@ export default function SalesHistoryTab() {
                                                 </td>
                                                 <td>
                                                     <div style={{ fontWeight: '600', color: '#0369a1' }}>
-                                                        ${formatNumber(item.sale_price_usd || 0)} USD
+                                                        {formatMoney(salePrice, saleCurrency)}
                                                     </div>
                                                     <div style={{ fontSize: '12px', color: '#64748b' }}>
-                                                        ${formatNumber(item.sale_price_ars || 0)} ARS
+                                                        {saleCurrency}{Number(item.installments_count) > 1 ? ` · ${item.installments_count} cuotas` : ''}
                                                     </div>
                                                 </td>
                                                 <td>
                                                     <div style={{ fontSize: '13px' }}>
-                                                        ${formatNumber(amountPaid)} ARS
+                                                        {formatMoney(amountPaid, saleCurrency)}
                                                     </div>
                                                     {balance > 0 && !isPaid && (
                                                         <div style={{
@@ -291,7 +292,7 @@ export default function SalesHistoryTab() {
                                                             color: '#dc2626',
                                                             fontWeight: '600'
                                                         }}>
-                                                            Saldo: ${formatNumber(balance)}
+                                                            Saldo: {formatMoney(balance, saleCurrency)}
                                                         </div>
                                                     )}
                                                 </td>
@@ -377,7 +378,7 @@ export default function SalesHistoryTab() {
                             Cobrado
                         </div>
                         <div style={{ fontSize: '24px', fontWeight: '700', color: '#16a34a' }}>
-                            ${formatNumber(filteredSales.reduce((sum, s) => sum + parseFloat(s.amount_paid_ars || 0), 0))}
+                            {formatMoney(totalBy('paid', 'USD'), 'USD')}<br />{formatMoney(totalBy('paid', 'ARS'), 'ARS')}
                         </div>
                     </div>
                     <div style={{
@@ -390,11 +391,7 @@ export default function SalesHistoryTab() {
                             Por Cobrar
                         </div>
                         <div style={{ fontSize: '24px', fontWeight: '700', color: '#dc2626' }}>
-                            ${formatNumber(filteredSales.reduce((sum, s) => {
-                                const salePrice = parseFloat(s.sale_price_ars || 0);
-                                const paid = parseFloat(s.amount_paid_ars || 0);
-                                return sum + (salePrice - paid);
-                            }, 0))}
+                            {formatMoney(totalBy('balance', 'USD'), 'USD')}<br />{formatMoney(totalBy('balance', 'ARS'), 'ARS')}
                         </div>
                     </div>
                 </div>
@@ -526,20 +523,17 @@ export default function SalesHistoryTab() {
                                     <div>
                                         <div style={{ fontSize: '12px', color: '#64748b' }}>Monto pagado</div>
                                         <div style={{ fontSize: '16px', fontWeight: '600', color: '#16a34a' }}>
-                                            ${formatNumber(selectedSale.amount_paid_ars || 0)} ARS
+                                            {formatMoney(getSaleSummary(selectedSale).paid, getSaleSummary(selectedSale).currency)}
                                         </div>
                                     </div>
                                     {(() => {
-                                        const salePrice = parseFloat(selectedSale.sale_price_ars || 0);
-                                        const amountPaid = parseFloat(selectedSale.amount_paid_ars || 0);
-                                        const balance = salePrice - amountPaid;
-                                        const isPaid = selectedSale.payment_status === 'paid' || balance <= 0;
+                                        const { total: salePrice, paid: amountPaid, balance, isPaid, currency: saleCurrency } = getSaleSummary(selectedSale);
 
                                         return balance > 0 && !isPaid ? (
                                             <div>
                                                 <div style={{ fontSize: '12px', color: '#64748b' }}>Saldo pendiente</div>
                                                 <div style={{ fontSize: '16px', fontWeight: '600', color: '#dc2626' }}>
-                                                    ${formatNumber(balance)} ARS
+                                                    {formatMoney(balance, saleCurrency)}
                                                 </div>
                                             </div>
                                         ) : (

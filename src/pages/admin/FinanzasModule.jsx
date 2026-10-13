@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
-import { Package, ShoppingCart, Upload, Search, FileText, LayoutDashboard, PlusCircle, CheckCircle, Smartphone, Edit, Trash2, X, Save } from 'lucide-react';
+import { Package, ShoppingCart, Upload, Search, FileText, LayoutDashboard, PlusCircle, CheckCircle, Smartphone, Edit, Trash2, X, Save, DollarSign } from 'lucide-react';
 import AdminHeader from '../../components/admin/AdminHeader';
 import ExchangeRateConfig from '../../components/admin/ExchangeRateConfig';
 import FinanceTabs from '../../components/admin/FinanceTabs';
@@ -9,6 +9,8 @@ import SalesManager from '../admin/SalesManager';
 import SuppliesPartsTab from '../../components/admin/SuppliesPartsTab';
 import SalesHistoryTab from '../../components/admin/SalesHistoryTab';
 import InventoryTab from '../../components/admin/InventoryTab';
+import SalePaymentsModal from '../../components/admin/SalePaymentsModal';
+import { formatMoney, getSaleSummary, getNextInstallment } from '../../utils/salePayments';
 import '../admin/SalesManager.css';
 
 /**
@@ -84,6 +86,7 @@ export default function FinanzasModule() {
 function AccountsReceivableTab() {
     const [pendingPayments, setPendingPayments] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [paymentsItem, setPaymentsItem] = useState(null);
 
     useEffect(() => {
         fetchPendingPayments();
@@ -92,19 +95,14 @@ function AccountsReceivableTab() {
     const fetchPendingPayments = async () => {
         try {
             setLoading(true);
-            // Obtener items vendidos con pago pendiente
-            const { data, error } = await supabase
-                .rpc('get_inventory')
-                .eq('status', 'sold')
-                .or('payment_status.eq.pending,payment_status.is.null');
-
+            // Ventas con saldo pendiente (pending o partial), en la moneda de cada venta
+            const { data, error } = await supabase.rpc('get_inventory').eq('status', 'sold');
             if (error) throw error;
 
-            // Calcular saldo pendiente para cada uno
-            const withBalance = data.map(item => ({
-                ...item,
-                balance: (item.sale_price_ars || 0) - (item.amount_paid_ars || 0)
-            })).filter(item => item.balance > 0);
+            const withBalance = data
+                .map(item => ({ ...item, summary: getSaleSummary(item), next: getNextInstallment(item) }))
+                .filter(item => !item.summary.isPaid && item.summary.balance > 0)
+                .sort((a, b) => (a.next?.dueDate || '9999').localeCompare(b.next?.dueDate || '9999'));
 
             setPendingPayments(withBalance);
         } catch (error) {
@@ -122,57 +120,88 @@ function AccountsReceivableTab() {
         );
     }
 
+    const totalsByCurrency = pendingPayments.reduce((acc, item) => {
+        acc[item.summary.currency] = (acc[item.summary.currency] || 0) + item.summary.balance;
+        return acc;
+    }, {});
+
     return (
         <div style={{ padding: '24px' }}>
-            <h2 style={{ marginBottom: '20px', fontSize: '1.5rem', fontWeight: '600' }}>
+            <h2 style={{ marginBottom: '8px', fontSize: '1.5rem', fontWeight: '600' }}>
                 💵 Cuentas por Cobrar
             </h2>
+            {pendingPayments.length > 0 && (
+                <p style={{ marginBottom: '20px', color: '#64748b' }}>
+                    Total a cobrar:{' '}
+                    {Object.entries(totalsByCurrency).map(([cur, total]) => (
+                        <b key={cur} className="pay-red" style={{ marginRight: 12 }}>{formatMoney(total, cur)}</b>
+                    ))}
+                </p>
+            )}
 
             {pendingPayments.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px', color: '#64748b' }}>
                     <p>✅ No hay deudas pendientes</p>
                 </div>
             ) : (
-                <div style={{ background: 'white', borderRadius: '12px', overflow: 'hidden' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                        <thead style={{ background: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                            <tr>
-                                <th style={{ padding: '12px', textAlign: 'left' }}>Cliente</th>
-                                <th style={{ padding: '12px', textAlign: 'left' }}>Producto</th>
-                                <th style={{ padding: '12px', textAlign: 'right' }}>Total ARS</th>
-                                <th style={{ padding: '12px', textAlign: 'right' }}>Pagado</th>
-                                <th style={{ padding: '12px', textAlign: 'right' }}>Saldo</th>
-                                <th style={{ padding: '12px', textAlign: 'left' }}>Observaciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {pendingPayments.map((item) => (
-                                <tr key={item.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                                    <td style={{ padding: '12px' }}>
-                                        <div style={{ fontWeight: '600' }}>{item.client_name}</div>
-                                        <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{item.client_dni}</div>
-                                    </td>
-                                    <td style={{ padding: '12px' }}>
-                                        <div>{item.product_name}</div>
-                                        <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{item.serial_number}</div>
-                                    </td>
-                                    <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>
-                                        ${item.sale_price_ars?.toLocaleString()}
-                                    </td>
-                                    <td style={{ padding: '12px', textAlign: 'right', color: '#22c55e' }}>
-                                        ${item.amount_paid_ars?.toLocaleString() || 0}
-                                    </td>
-                                    <td style={{ padding: '12px', textAlign: 'right', color: '#ef4444', fontWeight: '600' }}>
-                                        ${item.balance.toLocaleString()}
-                                    </td>
-                                    <td style={{ padding: '12px', fontSize: '0.9rem', color: '#64748b' }}>
-                                        {item.observations || '-'}
-                                    </td>
+                <div className="table-card">
+                    <div className="table-scroller">
+                        <table className="clean-table">
+                            <thead>
+                                <tr>
+                                    <th>Cliente</th>
+                                    <th>Producto</th>
+                                    <th style={{ textAlign: 'right' }}>Total</th>
+                                    <th style={{ textAlign: 'right' }}>Cobrado</th>
+                                    <th style={{ textAlign: 'right' }}>Saldo</th>
+                                    <th>Próxima cuota</th>
+                                    <th></th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {pendingPayments.map((item) => (
+                                    <tr key={item.id}>
+                                        <td>
+                                            <div style={{ fontWeight: '600' }}>{item.client_name}</div>
+                                            <div className="variant-sub">{item.client_dni}</div>
+                                        </td>
+                                        <td>
+                                            <div>{item.product_name}</div>
+                                            <div className="variant-sub">{item.serial_number}</div>
+                                        </td>
+                                        <td style={{ textAlign: 'right', fontWeight: '600' }}>
+                                            {formatMoney(item.summary.total, item.summary.currency)}
+                                        </td>
+                                        <td style={{ textAlign: 'right' }} className="pay-green">
+                                            {formatMoney(item.summary.paid, item.summary.currency)}
+                                        </td>
+                                        <td style={{ textAlign: 'right', fontWeight: '600' }} className="pay-red">
+                                            {formatMoney(item.summary.balance, item.summary.currency)}
+                                        </td>
+                                        <td style={{ fontSize: '0.85rem' }} className={item.next?.state === 'overdue' ? 'pay-red' : ''}>
+                                            {item.next
+                                                ? <>Cuota {item.next.number}/{item.summary.installmentsCount}<br />{item.next.dueDate}{item.next.state === 'overdue' ? ' · VENCIDA' : ''}</>
+                                                : '—'}
+                                        </td>
+                                        <td>
+                                            <button className="icon-btn pay-btn" title="Registrar pago" onClick={() => setPaymentsItem(item)}>
+                                                <DollarSign size={16} />
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
+            )}
+
+            {paymentsItem && (
+                <SalePaymentsModal
+                    item={paymentsItem}
+                    onClose={() => setPaymentsItem(null)}
+                    onChanged={fetchPendingPayments}
+                />
             )}
         </div>
     );
