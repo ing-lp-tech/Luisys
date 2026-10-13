@@ -105,23 +105,67 @@ export const getSaleSummary = (item) => {
     return { currency, total, paid, balance, isPaid, progress };
 };
 
+const appliedAmount = (p) => Number(p.amount_applied ?? p.amount) || 0;
+
+/**
+ * Pagos que NO están asignados a una cuota existente (anticipo, pagos a cuenta).
+ */
+export const getUnlinkedPaid = (item) => {
+    const numbers = new Set((item.installments || []).map(r => r.installment_number));
+    return (item.payments || [])
+        .filter(p => !p.installment_number || !numbers.has(p.installment_number))
+        .reduce((sum, p) => sum + appliedAmount(p), 0);
+};
+
+/**
+ * Saldo que deben cubrir las cuotas: total menos lo cobrado sin asignar a cuotas.
+ */
+export const getAmountToFinance = (item) =>
+    Math.max(0, getSaleSummary(item).total - getUnlinkedPaid(item));
+
 /**
  * Plan de cuotas de una venta con el estado de cada una.
- * Usa item.installments (tabla sale_installments). Las ventas sin plan
- * cargado devuelven [].
+ * Usa item.installments (tabla sale_installments) e item.payments (sale_payments).
+ * Una cuota se cubre con los pagos registrados PARA esa cuota. Los pagos sin
+ * cuota (anticipo / a cuenta) solo se aplican a las cuotas en lo que excedan
+ * la parte de la venta que quedó fuera del plan.
  * Estados: 'paid' | 'overdue' | 'soon' | 'partial' | 'pending'
  */
 export const buildInstallmentSchedule = (item) => {
     const rows = [...(item.installments || [])].sort((a, b) => a.installment_number - b.installment_number);
     if (rows.length === 0) return [];
 
-    const { paid, isPaid } = getSaleSummary(item);
-    let remainingPaid = isPaid ? Infinity : paid;
+    const { total, isPaid } = getSaleSummary(item);
+    const payments = item.payments || [];
+    const planSum = rows.reduce((s, r) => s + (Number(r.amount) || 0), 0);
+
+    const linked = {};
+    const lastPayment = {};
+    for (const p of payments) {
+        if (!p.installment_number || !rows.some(r => r.installment_number === p.installment_number)) continue;
+        linked[p.installment_number] = (linked[p.installment_number] || 0) + appliedAmount(p);
+        if (!lastPayment[p.installment_number] || p.payment_date > lastPayment[p.installment_number].payment_date) {
+            lastPayment[p.installment_number] = p;
+        }
+    }
+
+    // Excedente de pagos sin cuota + sobrepagos de cuotas: se aplica en orden a las cuotas impagas
+    let pool = Math.max(0, getUnlinkedPaid(item) - Math.max(0, total - planSum));
+    const coveredBy = {};
+    for (const row of rows) {
+        const amount = Number(row.amount) || 0;
+        const own = linked[row.installment_number] || 0;
+        coveredBy[row.installment_number] = Math.min(amount, own);
+        pool += Math.max(0, own - amount);
+    }
 
     return rows.map(row => {
         const amount = Number(row.amount) || 0;
-        const covered = Math.min(amount, Math.max(0, remainingPaid));
-        remainingPaid -= covered;
+        let covered = coveredBy[row.installment_number];
+        const extra = Math.min(amount - covered, pool);
+        covered += extra;
+        pool -= extra;
+        if (isPaid) covered = amount;
         const days = daysUntil(row.due_date);
 
         let state;
@@ -140,7 +184,8 @@ export const buildInstallmentSchedule = (item) => {
             covered,
             remaining: Math.max(0, amount - covered),
             days,
-            state
+            state,
+            lastPayment: lastPayment[row.installment_number] || null
         };
     });
 };
@@ -174,7 +219,7 @@ export const getCollectionStatus = (item) => {
     };
 };
 
-// Agrupa filas de sale_installments por venta
+// Agrupa filas de sale_installments / sale_payments por venta
 export const groupInstallments = (rows) => (rows || []).reduce((acc, row) => {
     (acc[row.item_id] = acc[row.item_id] || []).push(row);
     return acc;

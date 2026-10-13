@@ -1115,3 +1115,57 @@ html.dark .inst-num { background: #334155; color: #e2e8f0; }
 html.dark .inst-pay-btn { background: transparent; color: #4ade80; border-color: rgba(22, 163, 74, 0.5); }
 html.dark .pay-chip { background: rgba(14, 165, 233, 0.15); color: #7dd3fc; }
 html.dark .plan-num { color: #cbd5e1; }
+
+/* ---- Cobro explícito por cuota ---- */
+.inst-card { flex-direction: column; align-items: stretch; gap: 10px; }
+.inst-main { display: flex; align-items: center; gap: 12px; }
+.inst-paid-info {
+    display: inline-flex; align-items: center; gap: 4px; margin-top: 3px;
+    font-size: 0.75rem; font-weight: 600; color: #15803d;
+}
+.inst-pay-btn {
+    background: #059669; color: white; border-color: #059669;
+    padding: 8px 12px; font-size: 0.8rem;
+}
+.inst-pay-btn:hover { background: #047857; }
+.inst-overdue .inst-pay-btn { background: #dc2626; border-color: #dc2626; }
+.inst-overdue .inst-pay-btn:hover { background: #b91c1c; }
+.inst-undo-btn {
+    display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;
+    border: none; background: none; color: #64748b; font-size: 0.75rem; font-weight: 600; cursor: pointer;
+    padding: 4px 6px; border-radius: 6px;
+}
+.inst-undo-btn:hover { background: rgba(100, 116, 139, 0.12); color: #334155; }
+
+.inst-collect {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    padding: 12px;
+    border-radius: 8px;
+    background: white;
+    border: 1px dashed #86efac;
+}
+.inst-collect-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; }
+.inst-collect-actions .cmd-btn { margin-top: 0; padding: 10px 16px; }
+.inst-collect-actions .pay-submit-btn { padding: 10px 16px; }
+
+.plan-target { font-size: 0.85rem; color: #334155; }
+.plan-note {
+    font-size: 0.8rem; color: #475569;
+    background: #f1f5f9; border-radius: 8px; padding: 8px 10px; margin-bottom: 8px;
+}
+
+@media (max-width: 560px) {
+    .inst-main { flex-wrap: wrap; }
+    .inst-collect { grid-template-columns: 1fr; }
+}
+
+html.dark .inst-collect { background: #1e293b; border-color: rgba(22, 163, 74, 0.5); }
+html.dark .inst-pay-btn { background: #059669; color: white; border-color: #059669; }
+html.dark .inst-overdue .inst-pay-btn { background: #dc2626; border-color: #dc2626; }
+html.dark .inst-paid-info { color: #4ade80; }
+html.dark .inst-undo-btn { color: #94a3b8; }
+html.dark .inst-undo-btn:hover { color: #e2e8f0; }
+html.dark .plan-target { color: #cbd5e1; }
+html.dark .plan-note { background: #0f172a; color: #94a3b8; }

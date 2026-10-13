@@ -97,18 +97,20 @@ function AccountsReceivableTab() {
         try {
             setLoading(true);
             // Ventas con saldo pendiente (pending o partial), en la moneda de cada venta
-            const [invRes, instRes] = await Promise.all([
+            const [invRes, instRes, payRes] = await Promise.all([
                 supabase.rpc('get_inventory').eq('status', 'sold'),
-                supabase.from('sale_installments').select('*')
+                supabase.from('sale_installments').select('*'),
+                supabase.from('sale_payments').select('item_id, installment_number, amount, amount_applied, payment_date, payment_method')
             ]);
             if (invRes.error) throw invRes.error;
             const byItem = groupInstallments(instRes.data);
+            const paymentsByItem = groupInstallments(payRes.data);
 
             // Ventas con saldo pendiente: primero las vencidas, después por fecha de la próxima cuota
             const rank = { overdue: 0, soon: 1, ontrack: 2, noplan: 3 };
             const withBalance = invRes.data
                 .map(item => {
-                    const full = { ...item, installments: byItem[item.id] || [] };
+                    const full = { ...item, installments: byItem[item.id] || [], payments: paymentsByItem[item.id] || [] };
                     return { ...full, summary: getCollectionStatus(full) };
                 })
                 .filter(item => !item.summary.isPaid && item.summary.balance > 0)

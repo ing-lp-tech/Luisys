@@ -80,8 +80,10 @@ export function CollectionSummary({ status }) {
 /**
  * Editor del plan de cuotas: genera N cuotas y permite ajustar fecha límite
  * y monto de cada una. `rows` = [{ due_date, amount, notes }]
+ * `total` es lo que deben sumar las cuotas (precio total, o saldo a financiar
+ * si ya hubo pagos a cuenta); `targetLabel` lo nombra en pantalla.
  */
-export function InstallmentPlanEditor({ total, currency, saleDate, rows, onChange }) {
+export function InstallmentPlanEditor({ total, currency, saleDate, rows, onChange, targetLabel = 'total', showDownPayment = true }) {
     const [gen, setGen] = useState({
         downPayment: '',
         count: '3',
@@ -95,13 +97,13 @@ export function InstallmentPlanEditor({ total, currency, saleDate, rows, onChang
     const parse = (v) => parseFloat(String(v).replace(/\./g, '').replace(',', '.')) || 0;
 
     const handleGenerate = () => {
-        if (total <= 0) return alert('Primero cargá el precio total de la venta');
+        if (total <= 0) return alert(`No hay ${targetLabel} para repartir en cuotas`);
         onChange(generatePlan({
             total,
             count: gen.count,
             firstDueDate: gen.firstDueDate,
             frequency: gen.frequency,
-            downPayment: parse(gen.downPayment),
+            downPayment: showDownPayment ? parse(gen.downPayment) : 0,
             saleDate
         }));
     };
@@ -127,12 +129,17 @@ export function InstallmentPlanEditor({ total, currency, saleDate, rows, onChang
 
     return (
         <div className="plan-editor">
+            <div className="plan-target">
+                Las cuotas tienen que sumar el <b>{targetLabel}</b>: <b>{formatMoney(total, currency)}</b>
+            </div>
             <div className="plan-gen">
-                <div className="cmd-group">
-                    <label className="cmd-label">Anticipo ({currency})</label>
-                    <input className="cmd-input" inputMode="numeric" placeholder="0" value={gen.downPayment}
-                        onChange={e => setGen({ ...gen, downPayment: e.target.value.replace(/[^0-9]/g, '') === '' ? '' : new Intl.NumberFormat('es-AR').format(e.target.value.replace(/[^0-9]/g, '')) })} />
-                </div>
+                {showDownPayment && (
+                    <div className="cmd-group">
+                        <label className="cmd-label">Anticipo ({currency})</label>
+                        <input className="cmd-input" inputMode="numeric" placeholder="0" value={gen.downPayment}
+                            onChange={e => setGen({ ...gen, downPayment: e.target.value.replace(/[^0-9]/g, '') === '' ? '' : new Intl.NumberFormat('es-AR').format(e.target.value.replace(/[^0-9]/g, '')) })} />
+                    </div>
+                )}
                 <div className="cmd-group">
                     <label className="cmd-label">Cuotas</label>
                     <input className="cmd-input" type="number" min="1" value={gen.count}
@@ -183,7 +190,7 @@ export function InstallmentPlanEditor({ total, currency, saleDate, rows, onChang
                 <button type="button" className="plan-link-btn" onClick={addRow}><Plus size={14} /> Agregar cuota</button>
                 {rows.length > 0 && (
                     Math.abs(diff) < 0.01 ? (
-                        <span className="col-text-paid"><CheckCircle2 size={13} /> Suma {formatMoney(sum, currency)} = total</span>
+                        <span className="col-text-paid"><CheckCircle2 size={13} /> Suma {formatMoney(sum, currency)} = {targetLabel}</span>
                     ) : (
                         <span className="col-text-soon">
                             <AlertTriangle size={13} /> Suma {formatMoney(sum, currency)} · {diff > 0 ? 'faltan' : 'sobran'} {formatMoney(Math.abs(diff), currency)}

@@ -152,12 +152,14 @@ export default function SalesManager({ showHeaderAndExchange = true }) {
     };
 
     const fetchInventory = async () => {
-        const [invRes, instRes] = await Promise.all([
+        const [invRes, instRes, payRes] = await Promise.all([
             supabase.rpc('get_inventory'),
-            supabase.from('sale_installments').select('*').order('installment_number')
+            supabase.from('sale_installments').select('*').order('installment_number'),
+            supabase.from('sale_payments').select('item_id, installment_number, amount, amount_applied, payment_date, payment_method')
         ]);
         if (instRes.error) console.error('Error cargando cuotas (¿corriste sql/08?):', instRes.error);
         const byItem = groupInstallments(instRes.data);
+        const paymentsByItem = groupInstallments(payRes.data);
 
         let rows = invRes.data;
         if (invRes.error) {
@@ -171,7 +173,8 @@ export default function SalesManager({ showHeaderAndExchange = true }) {
         setInventory((rows || []).map(item => ({
             ...item,
             productos: { nombre: item.product_name },
-            installments: byItem[item.id] || []
+            installments: byItem[item.id] || [],
+            payments: paymentsByItem[item.id] || []
         })));
     };
 
@@ -296,6 +299,10 @@ export default function SalesManager({ showHeaderAndExchange = true }) {
         const initialPayment = cleanNumber(saleForm.initial_payment);
         const isInstallments = saleForm.payment_mode === 'cuotas';
         const planRows = isInstallments ? saleForm.plan_rows : [];
+        // Si el plan incluye el anticipo como cuota 1, lo cobrado hoy es esa cuota;
+        // si no, lo cobrado hoy queda "a cuenta" y las cuotas cubren el resto
+        const planIncludesDown = planRows[0]?.notes === 'Anticipo';
+        const planTarget = planIncludesDown ? salePrice : salePrice - initialPayment;
 
         if (salePrice <= 0) return alert('Ingresá el precio de venta');
         if (initialPayment > salePrice) return alert('Lo cobrado no puede ser mayor al precio de venta');
@@ -303,8 +310,8 @@ export default function SalesManager({ showHeaderAndExchange = true }) {
             if (planRows.length === 0) return alert('Generá o cargá las cuotas con su fecha límite');
             if (planRows.some(r => !r.due_date || !(Number(r.amount) > 0))) return alert('Todas las cuotas necesitan fecha límite y monto');
             const sum = planRows.reduce((s, r) => s + Number(r.amount), 0);
-            if (Math.abs(sum - salePrice) > 0.01 &&
-                !window.confirm(`Las cuotas suman ${formatMoney(sum, saleForm.sale_currency)} pero el total es ${formatMoney(salePrice, saleForm.sale_currency)}. ¿Guardar igual?`)) {
+            if (Math.abs(sum - planTarget) > 0.01 &&
+                !window.confirm(`Las cuotas suman ${formatMoney(sum, saleForm.sale_currency)} pero deberían sumar ${formatMoney(planTarget, saleForm.sale_currency)}. ¿Guardar igual?`)) {
                 return;
             }
         }
@@ -365,7 +372,7 @@ export default function SalesManager({ showHeaderAndExchange = true }) {
             if (initialPayment > 0) {
                 const { error: payError } = await supabase.from('sale_payments').insert({
                     item_id: saved.id,
-                    installment_number: planRows.length ? 1 : null,
+                    installment_number: planIncludesDown ? 1 : null,
                     payment_date: saleForm.sale_date,
                     amount: initialPayment,
                     currency: saleForm.sale_currency,
@@ -462,6 +469,10 @@ export default function SalesManager({ showHeaderAndExchange = true }) {
     };
 
     const salePriceValue = cleanNumber(saleForm.sale_price);
+    const formPlanIncludesDown = saleForm.plan_rows[0]?.notes === 'Anticipo';
+    const formPlanTarget = formPlanIncludesDown
+        ? salePriceValue
+        : Math.max(0, salePriceValue - cleanNumber(saleForm.initial_payment));
     const stockForProduct = availableItems.filter(i => i.product_id === saleForm.filter_product_id);
 
     return (
@@ -658,7 +669,9 @@ export default function SalesManager({ showHeaderAndExchange = true }) {
                         {saleForm.payment_mode === 'cuotas' && (
                             <div className="span-all">
                                 <InstallmentPlanEditor
-                                    total={salePriceValue}
+                                    total={formPlanTarget}
+                                    showDownPayment={!cleanNumber(saleForm.initial_payment) || formPlanIncludesDown}
+                                    targetLabel={formPlanIncludesDown || !cleanNumber(saleForm.initial_payment) ? 'total de la venta' : 'saldo a financiar (total − cobrado hoy)'}
                                     currency={saleForm.sale_currency}
                                     saleDate={saleForm.sale_date}
                                     rows={saleForm.plan_rows}

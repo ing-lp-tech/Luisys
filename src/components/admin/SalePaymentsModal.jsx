@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
-import { X, Trash2, PlusCircle, CalendarClock, Pencil, HandCoins, CheckCircle2, Receipt } from 'lucide-react';
+import { X, Trash2, PlusCircle, CalendarClock, Pencil, HandCoins, CheckCircle2, Receipt, Undo2 } from 'lucide-react';
 import { useExchangeRate } from '../../hooks/useExchangeRate';
 import {
     CURRENCIES,
@@ -9,7 +9,9 @@ import {
     formatDate,
     describeDays,
     todayISO,
-    getCollectionStatus
+    getCollectionStatus,
+    getAmountToFinance,
+    getUnlinkedPaid
 } from '../../utils/salePayments';
 import { CollectionBadge, InstallmentStateBadge, InstallmentPlanEditor } from './CollectionUI';
 
@@ -34,6 +36,8 @@ export default function SalePaymentsModal({ item, onClose, onChanged }) {
     const [saving, setSaving] = useState(false);
     const [editingPlan, setEditingPlan] = useState(false);
     const [planRows, setPlanRows] = useState([]);
+    // Cuota que se está cobrando desde su tarjeta: { number, payment_date, amount, payment_method }
+    const [collecting, setCollecting] = useState(null);
 
     const status = getCollectionStatus(current);
     const { currency } = status;
@@ -74,7 +78,7 @@ export default function SalePaymentsModal({ item, onClose, onChanged }) {
         if (paysRes.error) alert('Error cargando pagos: ' + paysRes.error.message);
         setPayments(paysRes.data || []);
 
-        const updated = { ...current, ...(itemRes.data || {}), installments: instRes.data || current.installments || [] };
+        const updated = { ...current, ...(itemRes.data || {}), installments: instRes.data || current.installments || [], payments: paysRes.data || [] };
         setCurrent(updated);
         setLoading(false);
 
@@ -108,6 +112,7 @@ export default function SalePaymentsModal({ item, onClose, onChanged }) {
         try {
             const { error } = await supabase.from('sale_payments').insert({ item_id: item.id, ...payload });
             if (error) throw error;
+            setCollecting(null);
             await afterChange();
         } catch (err) {
             alert('Error al registrar el pago: ' + err.message);
@@ -136,17 +141,35 @@ export default function SalePaymentsModal({ item, onClose, onChanged }) {
         });
     };
 
-    // Registrar en un clic el pago de una cuota puntual
-    const handlePayInstallment = (inst) => {
-        if (!window.confirm(`¿Registrar el pago de la cuota ${inst.number} por ${formatMoney(inst.remaining, currency)} con fecha de hoy?`)) return;
+    // Abre el mini formulario de cobro dentro de la tarjeta de la cuota
+    const startCollect = (inst) => setCollecting({
+        number: inst.number,
+        payment_date: todayISO(),
+        amount: toTyped(inst.remaining),
+        payment_method: 'Efectivo'
+    });
+
+    const confirmCollect = (e) => {
+        e.preventDefault();
+        const amount = parseAmount(collecting.amount);
+        if (amount <= 0) return alert('Ingresá el monto cobrado');
         insertPayment({
-            installment_number: inst.number,
-            payment_date: todayISO(),
-            amount: Math.round(inst.remaining * 100) / 100,
+            installment_number: collecting.number,
+            payment_date: collecting.payment_date,
+            amount,
             currency,
-            payment_method: form.payment_method || null,
-            notes: `Cuota ${inst.number}`
+            payment_method: collecting.payment_method || null,
+            notes: `Cuota ${collecting.number}`
         });
+    };
+
+    // Deshace el cobro de una cuota: borra los pagos asignados a ella
+    const undoInstallment = async (inst) => {
+        if (!window.confirm(`¿Deshacer el cobro de la cuota ${inst.number}? Se eliminan los pagos registrados para esa cuota.`)) return;
+        const { error } = await supabase.from('sale_payments').delete()
+            .eq('item_id', item.id).eq('installment_number', inst.number);
+        if (error) return alert('Error: ' + error.message);
+        await afterChange();
     };
 
     const handleSettleAll = () => {
@@ -174,12 +197,17 @@ export default function SalePaymentsModal({ item, onClose, onChanged }) {
         setEditingPlan(true);
     };
 
+    // Lo que deben cubrir las cuotas: total menos anticipo / pagos a cuenta
+    const unlinkedPaid = getUnlinkedPaid(current);
+    const amountToFinance = getAmountToFinance(current);
+    const planTargetLabel = unlinkedPaid > 0 ? 'saldo a financiar' : 'total de la venta';
+
     const savePlan = async () => {
         const rows = planRows.filter(r => r.due_date && Number(r.amount) > 0);
         const sum = rows.reduce((s, r) => s + Number(r.amount), 0);
         if (rows.length !== planRows.length) return alert('Todas las cuotas necesitan fecha y monto mayor a 0');
-        if (Math.abs(sum - status.total) > 0.01 &&
-            !window.confirm(`Las cuotas suman ${formatMoney(sum, currency)} y el total de la venta es ${formatMoney(status.total, currency)}. ¿Guardar igual?`)) {
+        if (Math.abs(sum - amountToFinance) > 0.01 &&
+            !window.confirm(`Las cuotas suman ${formatMoney(sum, currency)} y el ${planTargetLabel} es ${formatMoney(amountToFinance, currency)}. ¿Guardar igual?`)) {
             return;
         }
         setSaving(true);
@@ -266,8 +294,16 @@ export default function SalePaymentsModal({ item, onClose, onChanged }) {
 
                             {editingPlan ? (
                                 <>
+                                    {unlinkedPaid > 0 && (
+                                        <div className="plan-note">
+                                            Ya cobraste {formatMoney(unlinkedPaid, currency)} sin asignar a cuotas (anticipo / a cuenta).
+                                            Las cuotas cubren el resto.
+                                        </div>
+                                    )}
                                     <InstallmentPlanEditor
-                                        total={status.total}
+                                        total={amountToFinance}
+                                        targetLabel={planTargetLabel}
+                                        showDownPayment={unlinkedPaid === 0}
                                         currency={currency}
                                         saleDate={current.sale_date}
                                         rows={planRows}
@@ -286,26 +322,73 @@ export default function SalePaymentsModal({ item, onClose, onChanged }) {
                                 </div>
                             ) : (
                                 <div className="inst-list">
+                                    {unlinkedPaid > 0 && (
+                                        <div className="plan-note">
+                                            Anticipo / pagos a cuenta: <b>{formatMoney(unlinkedPaid, currency)}</b> (no se asignan a ninguna cuota)
+                                        </div>
+                                    )}
                                     {status.schedule.map(inst => (
                                         <div key={inst.number} className={`inst-card inst-${inst.state}`}>
-                                            <div className="inst-num">{inst.number}</div>
-                                            <div className="inst-body">
-                                                <div className="inst-top">
-                                                    <b>{formatMoney(inst.amount, currency)}</b>
-                                                    <InstallmentStateBadge state={inst.state} />
+                                            <div className="inst-main">
+                                                <div className="inst-num">{inst.number}</div>
+                                                <div className="inst-body">
+                                                    <div className="inst-top">
+                                                        <b>{formatMoney(inst.amount, currency)}</b>
+                                                        <InstallmentStateBadge state={inst.state} />
+                                                    </div>
+                                                    <div className="pay-sub">
+                                                        Límite {formatDate(inst.dueDate)}
+                                                        {inst.state !== 'paid' && ` · ${describeDays(inst.days)}`}
+                                                        {inst.covered > 0 && inst.state !== 'paid' && ` · cobrado ${formatMoney(inst.covered, currency)}, falta ${formatMoney(inst.remaining, currency)}`}
+                                                        {inst.notes ? ` · ${inst.notes}` : ''}
+                                                    </div>
+                                                    {inst.state === 'paid' && inst.lastPayment && (
+                                                        <div className="inst-paid-info">
+                                                            <CheckCircle2 size={12} /> Cobrada el {formatDate(inst.lastPayment.payment_date)}
+                                                            {inst.lastPayment.payment_method ? ` · ${inst.lastPayment.payment_method}` : ''}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                <div className="pay-sub">
-                                                    Límite {formatDate(inst.dueDate)}
-                                                    {inst.state !== 'paid' && ` · ${describeDays(inst.days)}`}
-                                                    {inst.covered > 0 && inst.state !== 'paid' && ` · pagado ${formatMoney(inst.covered, currency)}`}
-                                                    {inst.notes ? ` · ${inst.notes}` : ''}
-                                                </div>
+                                                {inst.state !== 'paid' && collecting?.number !== inst.number && (
+                                                    <button type="button" className="inst-pay-btn" disabled={saving}
+                                                        onClick={() => startCollect(inst)} title="Registrar que te pagaron esta cuota">
+                                                        <HandCoins size={14} /> Registrar cobro
+                                                    </button>
+                                                )}
+                                                {inst.state === 'paid' && inst.lastPayment && (
+                                                    <button type="button" className="inst-undo-btn" disabled={saving}
+                                                        onClick={() => undoInstallment(inst)} title="Deshacer el cobro de esta cuota">
+                                                        <Undo2 size={13} /> Deshacer
+                                                    </button>
+                                                )}
                                             </div>
-                                            {inst.state !== 'paid' && (
-                                                <button type="button" className="inst-pay-btn" disabled={saving}
-                                                    onClick={() => handlePayInstallment(inst)} title="Marcar cuota como pagada hoy">
-                                                    <CheckCircle2 size={14} /> Pagada
-                                                </button>
+
+                                            {collecting?.number === inst.number && (
+                                                <form className="inst-collect" onSubmit={confirmCollect}>
+                                                    <div className="cmd-group">
+                                                        <label className="cmd-label">Fecha en que te pagó</label>
+                                                        <input className="cmd-input" type="date" required value={collecting.payment_date}
+                                                            onChange={e => setCollecting({ ...collecting, payment_date: e.target.value })} />
+                                                    </div>
+                                                    <div className="cmd-group">
+                                                        <label className="cmd-label">Monto ({currency})</label>
+                                                        <input className="cmd-input" inputMode="numeric" required value={collecting.amount}
+                                                            onChange={e => setCollecting({ ...collecting, amount: formatTyped(e.target.value) })} />
+                                                    </div>
+                                                    <div className="cmd-group">
+                                                        <label className="cmd-label">Método</label>
+                                                        <select className="cmd-select" value={collecting.payment_method}
+                                                            onChange={e => setCollecting({ ...collecting, payment_method: e.target.value })}>
+                                                            {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
+                                                        </select>
+                                                    </div>
+                                                    <div className="inst-collect-actions">
+                                                        <button type="button" className="cmd-btn btn-ghost" onClick={() => setCollecting(null)}>Cancelar</button>
+                                                        <button type="submit" className="pay-submit-btn" disabled={saving}>
+                                                            <CheckCircle2 size={15} /> {saving ? 'Guardando...' : 'Confirmar cobro'}
+                                                        </button>
+                                                    </div>
+                                                </form>
                                             )}
                                         </div>
                                     ))}
@@ -332,7 +415,7 @@ export default function SalePaymentsModal({ item, onClose, onChanged }) {
                                                 const inst = status.schedule.find(i => String(i.number) === e.target.value);
                                                 setForm({ ...form, installment_number: e.target.value, amount: inst ? toTyped(inst.remaining) : form.amount });
                                             }}>
-                                            <option value="">Pago a cuenta</option>
+                                            <option value="">Sin cuota (anticipo / a cuenta)</option>
                                             {status.schedule.filter(i => i.state !== 'paid').map(i => (
                                                 <option key={i.number} value={i.number}>
                                                     Cuota {i.number} · {formatDate(i.dueDate)}
