@@ -192,6 +192,9 @@ BEFORE INSERT OR UPDATE ON inventory_items
 FOR EACH ROW EXECUTE FUNCTION inventory_items_payment_status();
 
 -- 4. MIGRAR DATOS EXISTENTES ----------------------------------------------------
+-- El trigger de estado se apaga mientras se migra: si no, al asignar
+-- sale_currency recalcularía todo como 'pending' antes de crear los pagos.
+ALTER TABLE inventory_items DISABLE TRIGGER trg_inventory_items_payment_status;
 
 -- Moneda de compra: la que tenga monto (USD tiene prioridad si están ambas)
 UPDATE inventory_items
@@ -234,6 +237,7 @@ WHERE i.status = 'sold'
   AND NOT EXISTS (SELECT 1 FROM sale_payments sp WHERE sp.item_id = i.id);
 
 -- Recalcular amount_paid / payment_status de todas las ventas
+ALTER TABLE inventory_items ENABLE TRIGGER trg_inventory_items_payment_status;
 UPDATE inventory_items i
 SET amount_paid = COALESCE((SELECT SUM(sp.amount_applied) FROM sale_payments sp WHERE sp.item_id = i.id), 0)
 WHERE i.status = 'sold';

@@ -1,32 +1,30 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabaseClient';
-import { X, Trash2, PlusCircle, Calendar } from 'lucide-react';
+import { X, Trash2, PlusCircle, CalendarClock, Pencil, HandCoins, CheckCircle2, Receipt } from 'lucide-react';
 import { useExchangeRate } from '../../hooks/useExchangeRate';
 import {
     CURRENCIES,
     PAYMENT_METHODS,
     formatMoney,
-    getSaleSummary,
-    buildInstallmentSchedule
+    formatDate,
+    describeDays,
+    todayISO,
+    getCollectionStatus
 } from '../../utils/salePayments';
+import { CollectionBadge, InstallmentStateBadge, InstallmentPlanEditor } from './CollectionUI';
 
-const STATE_LABELS = {
-    paid: '✓ Pagada',
-    partial: 'Parcial',
-    overdue: 'Vencida',
-    pending: 'Pendiente'
-};
-
-const parseAmount = (value) => parseFloat(value.toString().replace(/\./g, '').replace(',', '.')) || 0;
+const parseAmount = (value) => parseFloat(String(value).replace(/\./g, '').replace(',', '.')) || 0;
 
 const formatTyped = (value) => {
-    const digits = value.replace(/[^0-9]/g, '');
+    const digits = String(value).replace(/[^0-9]/g, '');
     return digits === '' ? '' : new Intl.NumberFormat('es-AR').format(digits);
 };
 
+const toTyped = (amount) => (amount > 0 ? formatTyped(String(Math.round(amount))) : '');
+
 /**
- * Modal para ver y registrar los pagos (cuotas) de una venta.
- * El total cobrado y el estado los recalcula Supabase con triggers.
+ * Cobranza de una venta: plan de cuotas con fechas límite + registro de pagos.
+ * amount_paid / payment_status los recalcula Supabase con triggers.
  */
 export default function SalePaymentsModal({ item, onClose, onChanged }) {
     const { rateConfig, getCurrentRate } = useExchangeRate();
@@ -34,62 +32,66 @@ export default function SalePaymentsModal({ item, onClose, onChanged }) {
     const [payments, setPayments] = useState([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [editingPlan, setEditingPlan] = useState(false);
+    const [planRows, setPlanRows] = useState([]);
 
-    const summary = getSaleSummary(current);
-    const schedule = buildInstallmentSchedule(current);
-    const nextInstallment = schedule.find(i => i.state !== 'paid');
-
-    const suggestedAmount = () => {
-        const target = nextInstallment ? nextInstallment.amount - nextInstallment.covered : summary.balance;
-        return target > 0 ? formatTyped(String(Math.round(target))) : '';
-    };
+    const status = getCollectionStatus(current);
+    const { currency } = status;
 
     const [form, setForm] = useState({
-        payment_date: new Date().toISOString().split('T')[0],
-        amount: suggestedAmount(),
-        currency: summary.currency,
+        installment_number: '',
+        payment_date: todayISO(),
+        amount: '',
+        currency,
         exchange_rate: '',
         payment_method: 'Efectivo',
         notes: ''
     });
 
-    const needsRate = form.currency !== summary.currency;
+    const needsRate = form.currency !== currency;
 
     useEffect(() => {
-        fetchPayments();
+        loadAll();
     }, []);
 
     useEffect(() => {
         if (needsRate && !form.exchange_rate) {
             const rate = getCurrentRate?.();
-            if (rate) setForm(f => ({ ...f, exchange_rate: String(Math.round(rate)) }));
+            if (rate) setForm(f => ({ ...f, exchange_rate: formatTyped(String(Math.round(rate))) }));
         }
     }, [needsRate, rateConfig]);
 
-    const fetchPayments = async () => {
+    // Trae pagos, cuotas y los totales recalculados por el trigger
+    const loadAll = async () => {
         setLoading(true);
-        const { data, error } = await supabase
-            .from('sale_payments')
-            .select('*')
-            .eq('item_id', item.id)
-            .order('payment_date', { ascending: true })
-            .order('created_at', { ascending: true });
-        if (error) alert('Error cargando pagos: ' + error.message);
-        setPayments(data || []);
+        const [paysRes, instRes, itemRes] = await Promise.all([
+            supabase.from('sale_payments').select('*').eq('item_id', item.id)
+                .order('payment_date', { ascending: false }).order('created_at', { ascending: false }),
+            supabase.from('sale_installments').select('*').eq('item_id', item.id).order('installment_number'),
+            supabase.from('inventory_items').select('amount_paid, payment_status, amount_paid_ars, installments_count, first_due_date')
+                .eq('id', item.id).single()
+        ]);
+        if (paysRes.error) alert('Error cargando pagos: ' + paysRes.error.message);
+        setPayments(paysRes.data || []);
+
+        const updated = { ...current, ...(itemRes.data || {}), installments: instRes.data || current.installments || [] };
+        setCurrent(updated);
         setLoading(false);
+
+        // Sugerir la próxima cuota impaga en el formulario
+        const st = getCollectionStatus(updated);
+        setForm(f => ({
+            ...f,
+            installment_number: st.next ? String(st.next.number) : '',
+            amount: toTyped(st.next ? st.next.remaining : st.balance),
+            notes: ''
+        }));
+        return updated;
     };
 
-    // Después de cada cambio traemos de nuevo la venta para tener amount_paid/payment_status del trigger
-    const refreshItem = async () => {
-        const { data } = await supabase
-            .from('inventory_items')
-            .select('amount_paid, payment_status, amount_paid_ars')
-            .eq('id', item.id)
-            .single();
-        const updated = data ? { ...current, ...data } : current;
-        setCurrent(updated);
+    const afterChange = async () => {
+        await loadAll();
         onChanged?.();
-        return updated;
     };
 
     // Monto que descuenta de la deuda, en la moneda de la venta
@@ -98,43 +100,15 @@ export default function SalePaymentsModal({ item, onClose, onChanged }) {
         if (!needsRate) return amount;
         const rate = parseAmount(form.exchange_rate);
         if (!rate) return 0;
-        return summary.currency === 'USD' ? amount / rate : amount * rate;
+        return currency === 'USD' ? amount / rate : amount * rate;
     };
 
-    const handleAdd = async (e) => {
-        e.preventDefault();
-        const amount = parseAmount(form.amount);
-        if (amount <= 0) return alert('Ingresá un monto mayor a 0');
-        if (needsRate && !parseAmount(form.exchange_rate)) return alert('Ingresá el tipo de cambio');
-        if (appliedPreview() > summary.balance + 0.01 &&
-            !window.confirm(`El pago supera el saldo pendiente (${formatMoney(summary.balance, summary.currency)}). ¿Registrarlo igual?`)) {
-            return;
-        }
-
+    const insertPayment = async (payload) => {
         setSaving(true);
         try {
-            const { error } = await supabase.from('sale_payments').insert({
-                item_id: item.id,
-                installment_number: nextInstallment?.number ?? payments.length + 1,
-                payment_date: form.payment_date,
-                amount,
-                currency: form.currency,
-                exchange_rate: needsRate ? parseAmount(form.exchange_rate) : null,
-                payment_method: form.payment_method || null,
-                notes: form.notes || null
-            });
+            const { error } = await supabase.from('sale_payments').insert({ item_id: item.id, ...payload });
             if (error) throw error;
-
-            await fetchPayments();
-            const updated = await refreshItem();
-            const updatedSummary = getSaleSummary(updated);
-            const nextOpen = buildInstallmentSchedule(updated).find(i => i.state !== 'paid');
-            const nextTarget = nextOpen ? nextOpen.amount - nextOpen.covered : updatedSummary.balance;
-            setForm(f => ({
-                ...f,
-                amount: nextTarget > 0 ? formatTyped(String(Math.round(nextTarget))) : '',
-                notes: ''
-            }));
+            await afterChange();
         } catch (err) {
             alert('Error al registrar el pago: ' + err.message);
         } finally {
@@ -142,157 +116,311 @@ export default function SalePaymentsModal({ item, onClose, onChanged }) {
         }
     };
 
+    const handleAdd = (e) => {
+        e.preventDefault();
+        const amount = parseAmount(form.amount);
+        if (amount <= 0) return alert('Ingresá un monto mayor a 0');
+        if (needsRate && !parseAmount(form.exchange_rate)) return alert('Ingresá el tipo de cambio');
+        if (appliedPreview() > status.balance + 0.01 &&
+            !window.confirm(`El pago supera el saldo pendiente (${formatMoney(status.balance, currency)}). ¿Registrarlo igual?`)) {
+            return;
+        }
+        insertPayment({
+            installment_number: form.installment_number ? Number(form.installment_number) : null,
+            payment_date: form.payment_date,
+            amount,
+            currency: form.currency,
+            exchange_rate: needsRate ? parseAmount(form.exchange_rate) : null,
+            payment_method: form.payment_method || null,
+            notes: form.notes || null
+        });
+    };
+
+    // Registrar en un clic el pago de una cuota puntual
+    const handlePayInstallment = (inst) => {
+        if (!window.confirm(`¿Registrar el pago de la cuota ${inst.number} por ${formatMoney(inst.remaining, currency)} con fecha de hoy?`)) return;
+        insertPayment({
+            installment_number: inst.number,
+            payment_date: todayISO(),
+            amount: Math.round(inst.remaining * 100) / 100,
+            currency,
+            payment_method: form.payment_method || null,
+            notes: `Cuota ${inst.number}`
+        });
+    };
+
+    const handleSettleAll = () => {
+        if (status.balance <= 0) return;
+        if (!window.confirm(`¿Registrar un pago por todo el saldo (${formatMoney(status.balance, currency)})? La venta queda como PAGADA.`)) return;
+        insertPayment({
+            installment_number: status.next?.number ?? null,
+            payment_date: todayISO(),
+            amount: Math.round(status.balance * 100) / 100,
+            currency,
+            payment_method: form.payment_method || null,
+            notes: 'Saldo total'
+        });
+    };
+
     const handleDelete = async (paymentId) => {
         if (!window.confirm('¿Eliminar este pago?')) return;
         const { error } = await supabase.from('sale_payments').delete().eq('id', paymentId);
         if (error) return alert('Error al eliminar: ' + error.message);
-        await fetchPayments();
-        await refreshItem();
+        await afterChange();
+    };
+
+    const startEditPlan = () => {
+        setPlanRows(status.schedule.map(i => ({ due_date: i.dueDate, amount: i.amount, notes: i.notes || '' })));
+        setEditingPlan(true);
+    };
+
+    const savePlan = async () => {
+        const rows = planRows.filter(r => r.due_date && Number(r.amount) > 0);
+        const sum = rows.reduce((s, r) => s + Number(r.amount), 0);
+        if (rows.length !== planRows.length) return alert('Todas las cuotas necesitan fecha y monto mayor a 0');
+        if (Math.abs(sum - status.total) > 0.01 &&
+            !window.confirm(`Las cuotas suman ${formatMoney(sum, currency)} y el total de la venta es ${formatMoney(status.total, currency)}. ¿Guardar igual?`)) {
+            return;
+        }
+        setSaving(true);
+        try {
+            const { error: delError } = await supabase.from('sale_installments').delete().eq('item_id', item.id);
+            if (delError) throw delError;
+            if (rows.length > 0) {
+                const { error } = await supabase.from('sale_installments').insert(rows.map((r, idx) => ({
+                    item_id: item.id,
+                    installment_number: idx + 1,
+                    due_date: r.due_date,
+                    amount: Number(r.amount),
+                    notes: r.notes || null
+                })));
+                if (error) throw error;
+            }
+            await supabase.from('inventory_items').update({
+                installments_count: Math.max(1, rows.length),
+                first_due_date: rows[0]?.due_date || null,
+                installment_amount: null
+            }).eq('id', item.id);
+            setEditingPlan(false);
+            await afterChange();
+        } catch (err) {
+            alert('Error al guardar el plan: ' + err.message);
+        } finally {
+            setSaving(false);
+        }
     };
 
     return (
         <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content pay-modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-content sm-modal pay-modal" onClick={e => e.stopPropagation()}>
                 <div className="modal-header">
-                    <h3>Pagos de la venta</h3>
+                    <div>
+                        <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <HandCoins size={20} /> Cobranza
+                        </h3>
+                        <div className="pay-sub">
+                            {current.productos?.nombre || current.product_name} · Serie {current.serial_number} · {current.client_name}
+                            {current.client_dni ? ` · DNI ${current.client_dni}` : ''}
+                        </div>
+                    </div>
                     <button onClick={onClose}><X size={20} /></button>
                 </div>
 
                 <div className="modal-body">
-                    <div className="pay-heading">
-                        <div className="pay-product">{current.productos?.nombre || current.product_name}</div>
-                        <div className="pay-sub">
-                            Serie {current.serial_number} · {current.client_name}
-                            {current.client_dni ? ` · DNI ${current.client_dni}` : ''}
-                        </div>
-                    </div>
-
                     {/* Resumen */}
                     <div className="pay-summary">
                         <div>
-                            <span>Total ({summary.currency})</span>
-                            <b>{formatMoney(summary.total, summary.currency)}</b>
+                            <span>Total ({currency})</span>
+                            <b>{formatMoney(status.total, currency)}</b>
                         </div>
                         <div>
                             <span>Cobrado</span>
-                            <b className="pay-green">{formatMoney(summary.paid, summary.currency)}</b>
+                            <b className="pay-green">{formatMoney(status.paid, currency)}</b>
                         </div>
                         <div>
                             <span>Saldo</span>
-                            <b className={summary.balance > 0 ? 'pay-red' : 'pay-green'}>
-                                {formatMoney(summary.balance, summary.currency)}
-                            </b>
+                            <b className={status.balance > 0 ? 'pay-red' : 'pay-green'}>{formatMoney(status.balance, currency)}</b>
+                        </div>
+                        <div className={status.overdueAmount > 0 ? 'pay-summary-alert' : ''}>
+                            <span>Vencido</span>
+                            <b className={status.overdueAmount > 0 ? 'pay-red' : ''}>{formatMoney(status.overdueAmount, currency)}</b>
                         </div>
                     </div>
-                    <div className="pay-progress"><div style={{ width: `${summary.progress}%` }} /></div>
+                    <div className="pay-status-line">
+                        <CollectionBadge status={status} />
+                        <div className="pay-progress"><div style={{ width: `${status.progress}%` }} /></div>
+                        <span className="pay-sub">{Math.round(status.progress)}%</span>
+                    </div>
 
-                    {/* Plan de cuotas */}
-                    {schedule.length > 0 && (
-                        <div className="cmd-group">
-                            <label className="cmd-label">Plan de cuotas ({schedule.length})</label>
-                            <div className="pay-schedule">
-                                {schedule.map(inst => (
-                                    <div key={inst.number} className={`pay-inst pay-inst-${inst.state}`}>
-                                        <span className="pay-inst-num">Cuota {inst.number}</span>
-                                        <span className="pay-inst-date">
-                                            <Calendar size={12} /> {inst.dueDate || '—'}
-                                        </span>
-                                        <span>{formatMoney(inst.amount, summary.currency)}</span>
-                                        <span className="pay-inst-state">{STATE_LABELS[inst.state]}</span>
-                                    </div>
-                                ))}
+                    <div className="pay-columns">
+                        {/* Columna izquierda: plan de cuotas */}
+                        <section className="pay-panel">
+                            <div className="pay-panel-head">
+                                <h4><CalendarClock size={16} /> Plan de cuotas {status.schedule.length > 0 && `(${status.paidCount}/${status.schedule.length} pagadas)`}</h4>
+                                {!editingPlan && (
+                                    <button type="button" className="plan-link-btn" onClick={startEditPlan}>
+                                        <Pencil size={13} /> {status.schedule.length ? 'Editar plan' : 'Definir cuotas'}
+                                    </button>
+                                )}
                             </div>
-                        </div>
-                    )}
 
-                    {/* Historial de pagos */}
-                    <div className="cmd-group">
-                        <label className="cmd-label">Pagos registrados ({payments.length})</label>
-                        {loading ? (
-                            <div className="pay-empty">Cargando...</div>
-                        ) : payments.length === 0 ? (
-                            <div className="pay-empty">Todavía no se registraron pagos.</div>
-                        ) : (
-                            <div className="pay-list">
-                                {payments.map(p => (
-                                    <div key={p.id} className="pay-row">
-                                        <div>
-                                            <div className="pay-row-main">
-                                                {p.installment_number ? `Cuota ${p.installment_number} · ` : ''}
-                                                {formatMoney(p.amount, p.currency)}
-                                                {p.currency !== summary.currency && p.amount_applied != null && (
-                                                    <span className="pay-sub"> (= {formatMoney(p.amount_applied, summary.currency)} a {formatMoney(p.exchange_rate, 'ARS')})</span>
-                                                )}
-                                            </div>
-                                            <div className="pay-sub">
-                                                {p.payment_date}{p.payment_method ? ` · ${p.payment_method}` : ''}{p.notes ? ` · ${p.notes}` : ''}
-                                            </div>
-                                        </div>
-                                        <button className="icon-btn delete-btn" title="Eliminar pago" onClick={() => handleDelete(p.id)}>
-                                            <Trash2 size={15} />
+                            {editingPlan ? (
+                                <>
+                                    <InstallmentPlanEditor
+                                        total={status.total}
+                                        currency={currency}
+                                        saleDate={current.sale_date}
+                                        rows={planRows}
+                                        onChange={setPlanRows}
+                                    />
+                                    <div className="plan-actions">
+                                        <button type="button" className="cmd-btn" onClick={() => setEditingPlan(false)}>Cancelar</button>
+                                        <button type="button" className="cmd-btn btn-primary" disabled={saving} onClick={savePlan}>
+                                            {saving ? 'Guardando...' : 'Guardar plan'}
                                         </button>
                                     </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Nuevo pago */}
-                    <form className="pay-form" onSubmit={handleAdd}>
-                        <label className="cmd-label">
-                            Registrar pago{nextInstallment ? ` (cuota ${nextInstallment.number} de ${schedule.length})` : ''}
-                        </label>
-                        <div className="row-2">
-                            <div className="cmd-group">
-                                <label className="cmd-label">Fecha</label>
-                                <input className="cmd-input" type="date" required value={form.payment_date}
-                                    onChange={e => setForm({ ...form, payment_date: e.target.value })} />
-                            </div>
-                            <div className="cmd-group">
-                                <label className="cmd-label">Método</label>
-                                <select className="cmd-select" value={form.payment_method}
-                                    onChange={e => setForm({ ...form, payment_method: e.target.value })}>
-                                    {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
-                                </select>
-                            </div>
-                        </div>
-                        <div className="row-2">
-                            <div className="cmd-group">
-                                <label className="cmd-label">Moneda del pago</label>
-                                <div className="currency-toggle">
-                                    {CURRENCIES.map(c => (
-                                        <button type="button" key={c}
-                                            className={form.currency === c ? 'active' : ''}
-                                            onClick={() => setForm({ ...form, currency: c })}>{c}</button>
+                                </>
+                            ) : status.schedule.length === 0 ? (
+                                <div className="pay-empty">
+                                    Esta venta no tiene cuotas con fecha límite. Definilas para recibir avisos de vencimiento.
+                                </div>
+                            ) : (
+                                <div className="inst-list">
+                                    {status.schedule.map(inst => (
+                                        <div key={inst.number} className={`inst-card inst-${inst.state}`}>
+                                            <div className="inst-num">{inst.number}</div>
+                                            <div className="inst-body">
+                                                <div className="inst-top">
+                                                    <b>{formatMoney(inst.amount, currency)}</b>
+                                                    <InstallmentStateBadge state={inst.state} />
+                                                </div>
+                                                <div className="pay-sub">
+                                                    Límite {formatDate(inst.dueDate)}
+                                                    {inst.state !== 'paid' && ` · ${describeDays(inst.days)}`}
+                                                    {inst.covered > 0 && inst.state !== 'paid' && ` · pagado ${formatMoney(inst.covered, currency)}`}
+                                                    {inst.notes ? ` · ${inst.notes}` : ''}
+                                                </div>
+                                            </div>
+                                            {inst.state !== 'paid' && (
+                                                <button type="button" className="inst-pay-btn" disabled={saving}
+                                                    onClick={() => handlePayInstallment(inst)} title="Marcar cuota como pagada hoy">
+                                                    <CheckCircle2 size={14} /> Pagada
+                                                </button>
+                                            )}
+                                        </div>
                                     ))}
                                 </div>
+                            )}
+                        </section>
+
+                        {/* Columna derecha: registrar pago + historial */}
+                        <section className="pay-panel">
+                            <form className="pay-form" onSubmit={handleAdd}>
+                                <div className="pay-panel-head">
+                                    <h4><PlusCircle size={16} /> Registrar pago</h4>
+                                    {status.balance > 0 && (
+                                        <button type="button" className="plan-link-btn" onClick={handleSettleAll} disabled={saving}>
+                                            Saldar todo
+                                        </button>
+                                    )}
+                                </div>
+                                <div className="row-2">
+                                    <div className="cmd-group">
+                                        <label className="cmd-label">Corresponde a</label>
+                                        <select className="cmd-select" value={form.installment_number}
+                                            onChange={e => {
+                                                const inst = status.schedule.find(i => String(i.number) === e.target.value);
+                                                setForm({ ...form, installment_number: e.target.value, amount: inst ? toTyped(inst.remaining) : form.amount });
+                                            }}>
+                                            <option value="">Pago a cuenta</option>
+                                            {status.schedule.filter(i => i.state !== 'paid').map(i => (
+                                                <option key={i.number} value={i.number}>
+                                                    Cuota {i.number} · {formatDate(i.dueDate)}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="cmd-group">
+                                        <label className="cmd-label">Fecha de pago</label>
+                                        <input className="cmd-input" type="date" required value={form.payment_date}
+                                            onChange={e => setForm({ ...form, payment_date: e.target.value })} />
+                                    </div>
+                                </div>
+                                <div className="row-2">
+                                    <div className="cmd-group">
+                                        <label className="cmd-label">Moneda</label>
+                                        <div className="currency-toggle">
+                                            {CURRENCIES.map(c => (
+                                                <button type="button" key={c} className={form.currency === c ? 'active' : ''}
+                                                    onClick={() => setForm({ ...form, currency: c })}>{c}</button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="cmd-group">
+                                        <label className="cmd-label">Monto ({form.currency})</label>
+                                        <input className="cmd-input" inputMode="numeric" placeholder="0" required value={form.amount}
+                                            onChange={e => setForm({ ...form, amount: formatTyped(e.target.value) })} />
+                                    </div>
+                                </div>
+                                {needsRate && (
+                                    <div className="cmd-group">
+                                        <label className="cmd-label">Tipo de cambio (ARS por 1 USD)</label>
+                                        <input className="cmd-input" inputMode="numeric" value={form.exchange_rate}
+                                            onChange={e => setForm({ ...form, exchange_rate: formatTyped(e.target.value) })} />
+                                        <small className="pay-sub">Descuenta {formatMoney(appliedPreview(), currency)} del saldo</small>
+                                    </div>
+                                )}
+                                <div className="row-2">
+                                    <div className="cmd-group">
+                                        <label className="cmd-label">Método</label>
+                                        <select className="cmd-select" value={form.payment_method}
+                                            onChange={e => setForm({ ...form, payment_method: e.target.value })}>
+                                            {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="cmd-group">
+                                        <label className="cmd-label">Nota</label>
+                                        <input className="cmd-input" placeholder="Opcional" value={form.notes}
+                                            onChange={e => setForm({ ...form, notes: e.target.value })} />
+                                    </div>
+                                </div>
+                                <button type="submit" className="pay-submit-btn" disabled={saving}>
+                                    <PlusCircle size={16} /> {saving ? 'Guardando...' : 'Registrar pago'}
+                                </button>
+                            </form>
+
+                            <div className="pay-panel-head" style={{ marginTop: 18 }}>
+                                <h4><Receipt size={16} /> Pagos recibidos ({payments.length})</h4>
                             </div>
-                            <div className="cmd-group">
-                                <label className="cmd-label">Monto ({form.currency})</label>
-                                <input className="cmd-input" inputMode="numeric" placeholder="0" required value={form.amount}
-                                    onChange={e => setForm({ ...form, amount: formatTyped(e.target.value) })} />
-                            </div>
-                        </div>
-                        {needsRate && (
-                            <div className="cmd-group">
-                                <label className="cmd-label">Tipo de cambio (ARS por 1 USD)</label>
-                                <input className="cmd-input" inputMode="numeric" placeholder="1.200" value={form.exchange_rate}
-                                    onChange={e => setForm({ ...form, exchange_rate: formatTyped(e.target.value) })} />
-                                <small className="pay-sub">
-                                    Descuenta {formatMoney(appliedPreview(), summary.currency)} de la deuda en {summary.currency}
-                                </small>
-                            </div>
-                        )}
-                        <div className="cmd-group">
-                            <label className="cmd-label">Nota (opcional)</label>
-                            <input className="cmd-input" placeholder="Ej: transferencia Banco Nación" value={form.notes}
-                                onChange={e => setForm({ ...form, notes: e.target.value })} />
-                        </div>
-                        <button type="submit" className="cmd-btn btn-success" disabled={saving}>
-                            <PlusCircle size={16} style={{ marginRight: 6 }} />
-                            {saving ? 'Guardando...' : 'Registrar pago'}
-                        </button>
-                    </form>
+                            {loading ? (
+                                <div className="pay-empty">Cargando...</div>
+                            ) : payments.length === 0 ? (
+                                <div className="pay-empty">Todavía no se registraron pagos.</div>
+                            ) : (
+                                <div className="pay-list">
+                                    {payments.map(p => (
+                                        <div key={p.id} className="pay-row">
+                                            <div>
+                                                <div className="pay-row-main">
+                                                    {formatMoney(p.amount, p.currency)}
+                                                    {p.installment_number ? <span className="pay-chip">Cuota {p.installment_number}</span> : null}
+                                                </div>
+                                                <div className="pay-sub">
+                                                    {formatDate(p.payment_date)}{p.payment_method ? ` · ${p.payment_method}` : ''}
+                                                    {p.currency !== currency && p.amount_applied != null
+                                                        ? ` · = ${formatMoney(p.amount_applied, currency)} (TC ${formatMoney(p.exchange_rate, 'ARS')})` : ''}
+                                                    {p.notes ? ` · ${p.notes}` : ''}
+                                                </div>
+                                            </div>
+                                            <button className="icon-btn delete-btn" title="Eliminar pago" onClick={() => handleDelete(p.id)}>
+                                                <Trash2 size={15} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </section>
+                    </div>
                 </div>
             </div>
         </div>

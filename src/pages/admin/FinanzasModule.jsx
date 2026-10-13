@@ -10,7 +10,8 @@ import SuppliesPartsTab from '../../components/admin/SuppliesPartsTab';
 import SalesHistoryTab from '../../components/admin/SalesHistoryTab';
 import InventoryTab from '../../components/admin/InventoryTab';
 import SalePaymentsModal from '../../components/admin/SalePaymentsModal';
-import { formatMoney, getSaleSummary, getNextInstallment } from '../../utils/salePayments';
+import { formatMoney, getCollectionStatus, groupInstallments } from '../../utils/salePayments';
+import { CollectionBadge, CollectionSummary } from '../../components/admin/CollectionUI';
 import '../admin/SalesManager.css';
 
 /**
@@ -96,13 +97,23 @@ function AccountsReceivableTab() {
         try {
             setLoading(true);
             // Ventas con saldo pendiente (pending o partial), en la moneda de cada venta
-            const { data, error } = await supabase.rpc('get_inventory').eq('status', 'sold');
-            if (error) throw error;
+            const [invRes, instRes] = await Promise.all([
+                supabase.rpc('get_inventory').eq('status', 'sold'),
+                supabase.from('sale_installments').select('*')
+            ]);
+            if (invRes.error) throw invRes.error;
+            const byItem = groupInstallments(instRes.data);
 
-            const withBalance = data
-                .map(item => ({ ...item, summary: getSaleSummary(item), next: getNextInstallment(item) }))
+            // Ventas con saldo pendiente: primero las vencidas, después por fecha de la próxima cuota
+            const rank = { overdue: 0, soon: 1, ontrack: 2, noplan: 3 };
+            const withBalance = invRes.data
+                .map(item => {
+                    const full = { ...item, installments: byItem[item.id] || [] };
+                    return { ...full, summary: getCollectionStatus(full) };
+                })
                 .filter(item => !item.summary.isPaid && item.summary.balance > 0)
-                .sort((a, b) => (a.next?.dueDate || '9999').localeCompare(b.next?.dueDate || '9999'));
+                .sort((a, b) => (rank[a.summary.level] - rank[b.summary.level]) ||
+                    (a.summary.next?.dueDate || '9999').localeCompare(b.summary.next?.dueDate || '9999'));
 
             setPendingPayments(withBalance);
         } catch (error) {
@@ -146,21 +157,19 @@ function AccountsReceivableTab() {
             ) : (
                 <div className="table-card">
                     <div className="table-scroller">
-                        <table className="clean-table">
+                        <table className="clean-table sales-table">
                             <thead>
                                 <tr>
                                     <th>Cliente</th>
                                     <th>Producto</th>
-                                    <th style={{ textAlign: 'right' }}>Total</th>
-                                    <th style={{ textAlign: 'right' }}>Cobrado</th>
-                                    <th style={{ textAlign: 'right' }}>Saldo</th>
-                                    <th>Próxima cuota</th>
+                                    <th>Estado</th>
+                                    <th>Cobranza</th>
                                     <th></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {pendingPayments.map((item) => (
-                                    <tr key={item.id}>
+                                    <tr key={item.id} className={`row-${item.summary.level}`}>
                                         <td>
                                             <div style={{ fontWeight: '600' }}>{item.client_name}</div>
                                             <div className="variant-sub">{item.client_dni}</div>
@@ -169,23 +178,11 @@ function AccountsReceivableTab() {
                                             <div>{item.product_name}</div>
                                             <div className="variant-sub">{item.serial_number}</div>
                                         </td>
-                                        <td style={{ textAlign: 'right', fontWeight: '600' }}>
-                                            {formatMoney(item.summary.total, item.summary.currency)}
-                                        </td>
-                                        <td style={{ textAlign: 'right' }} className="pay-green">
-                                            {formatMoney(item.summary.paid, item.summary.currency)}
-                                        </td>
-                                        <td style={{ textAlign: 'right', fontWeight: '600' }} className="pay-red">
-                                            {formatMoney(item.summary.balance, item.summary.currency)}
-                                        </td>
-                                        <td style={{ fontSize: '0.85rem' }} className={item.next?.state === 'overdue' ? 'pay-red' : ''}>
-                                            {item.next
-                                                ? <>Cuota {item.next.number}/{item.summary.installmentsCount}<br />{item.next.dueDate}{item.next.state === 'overdue' ? ' · VENCIDA' : ''}</>
-                                                : '—'}
-                                        </td>
+                                        <td><CollectionBadge status={item.summary} /></td>
+                                        <td className="cell-sm"><CollectionSummary status={item.summary} /></td>
                                         <td>
-                                            <button className="icon-btn pay-btn" title="Registrar pago" onClick={() => setPaymentsItem(item)}>
-                                                <DollarSign size={16} />
+                                            <button className={`pay-open ${item.summary.level === 'overdue' ? 'urgent' : ''}`} title="Cuotas y pagos" onClick={() => setPaymentsItem(item)}>
+                                                <DollarSign size={15} /> Cobrar
                                             </button>
                                         </td>
                                     </tr>
